@@ -13,16 +13,13 @@
 - 用户在 Web 工作台预览、编辑字段，确认后推送飞书卡片
 - 同时提供 CLI 一键跑通，供本地调试与脚本集成
 
-## 核心亮点
+## 项目亮点
 
-- 真实场景驱动：围绕「券商研报摘要 + 飞书推送」设计业务流程，而不是泛化聊天
-- 成本可控的解析管线：解析、OCR、表格识别、图片过滤在本地完成，仅 LLM 提取消耗 API
-- PDF 接入：MinerU 清洗 → 合并 → 提取链路
-- 多模态内容分解：表格、图表、装饰图分路处理，减少噪声进入 LLM
-- 固定提取契约：与 `ExtractionResult` 对齐的研报字段，前端可编辑后确认发送
-- 完整任务状态机：上传 → 解析 → 提取 → 待确认 → 发送，支持轮询与批量追踪
-- 前后端分离：`FastAPI` 后端 + `React + Vite` 前端，OpenAPI 契约清晰
-- Docker 一键启动：`docker compose up -d` 拉起 Postgres / Redis / 后端 / 前端
+- 完整任务流：上传 → 解析 → 提取 → 人工确认 → 飞书推送，支持轮询与批量
+- 成本可控：MinerU + 多模态分解在本地完成清洗，仅 LLM 提取消耗 Token
+- 前后端分离：FastAPI / Pydantic v2 契约 + React 工作台（字段编辑、卡片预览）
+- 一键部署：`docker compose up -d` 拉起 Postgres / Redis / API / 前端
+- CLI 与 API 共用 `app/pipeline.py`，编排逻辑不重复
 
 ## 技术栈
 
@@ -94,8 +91,7 @@ queued → parsing → extracting → pending_confirm → sending → sent | fai
 │       ├── components/         # 字段编辑、卡片预览、布局组件
 │       └── types/              # 与 OpenAPI 对齐的 TypeScript 类型
 ├── my_project/                 # MinerU 重依赖（uv / pyproject.toml）
-├── tests/                      # 单元测试
-└── teach/                      # FastAPI 学习笔记（非运行时）
+└── tests/                      # 单元测试
 ```
 
 ## 后端能力（FastAPI）
@@ -218,29 +214,18 @@ python -m pytest tests/ --ignore=tests/test_mineru.py
 
 更多开发约定见 [AGENTS.md](AGENTS.md)。
 
-## 运行时数据说明
+## 本地忽略与数据目录
 
-请勿提交到 Git：
+以下路径由 `.gitignore` 排除，不会进入仓库：
 
-- `.env`（含 API Key）
-- `.mineru_cache/`、`mineru_output/`、`.paddleocr_models/`
+- `.env`（API Key 等密钥）
+- `data/`（上传文件与运行时数据；仓库仅保留 `data/.gitkeep`）
 - `frontend/node_modules/`、`frontend/dist/`
-- `data/`（上传与任务运行时数据）
+- `.mineru_cache/`、`mineru_output/`、`.paddleocr_models/`
 
-`.gitignore` 已覆盖上述路径。Compose 全栈部署时通过 volume 挂载 `data/`，密钥用 `.env` 注入。
-
-## 适合在简历和面试中展示的点
-
-- 把券商研报摘要做成 **可轮询、可确认、可推送** 的完整任务流，而不是单次 LLM 调用
-- 用 **MinerU + 多模态分解** 控制解析成本，仅提取环节消耗 LLM Token
-- 用 **FastAPI + Pydantic v2** 封装上传、轮询、字段配置与确认发送接口
-- 用 **React** 构建独立工作台，完成字段编辑、卡片预览与前后端联调
-- 用 **Docker Compose** 一键拉起全栈（Postgres / Redis / API / 前端）
-- CLI 与 API 共用 `app/pipeline.py`，避免编排逻辑重复
+Compose 全栈部署时通过 volume 挂载 `data/`，密钥用 `.env` 注入。
 
 ## Roadmap
 
 - [ ] Celery Worker 纳入 Compose 编排（可选生产路径）
-- [x] 持久化任务存储（SQLite / Postgres，`DbTaskStore`）
-- [x] 确认发送飞书 Card v2（Webhook）
 - [ ] 群权限映射、发送审计与失败重发完善
