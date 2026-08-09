@@ -1,0 +1,13 @@
+.git
+.claude
+.agents
+.pytest_cache
+.mineru_cache
+.paddleocr_models
+__pycache__
+.venv
+frontend/node_modules
+frontend/dist
+teach
+tests
+*.pyc

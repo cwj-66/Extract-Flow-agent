@@ -1,0 +1,15 @@
+# MinerU / 管线运行时产物（勿提交）
+.mineru_cache/
+mineru_cache/
+mineru_output/
+__pycache__/
+
+# 真实研报样本（版权，勿提交）
+samples/*.pdf
+samples/.mineru_cache/
+
+# 手工跑管线生成的示例输出
+output.md
+*_report.txt
+card_output.*
+card_preview.*

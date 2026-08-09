@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary: #0f766e;
+  --color-primary-hover: #0d6b63;
+  --color-feishu-blue: #3370FF;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-muted: #64748B;
+  --font-sans: Inter, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.07), transparent 28%),
+    radial-gradient(circle at top right, rgba(217, 119, 6, 0.06), transparent 26%),
+    linear-gradient(180deg, #f8f5ef 0%, #f4f1ea 100%);
+  min-height: 100vh;
+  color: #1e293b;
+}
+
+* {
+  box-sizing: border-box;
+}

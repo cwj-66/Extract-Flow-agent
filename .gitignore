@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime / local data（保留空目录占位）
+data/*
+!data/.gitkeep
+*.db
+.mineru_cache/
+mineru_output/
+.paddleocr_models/
+.magic-pdf-models/
+my_project/.venv/
+
+# 测试用真实研报样本（版权，勿提交）
+tests/samples/*.pdf
+tests/samples/.mineru_cache/
+
+# Env
+.env
+.env.local
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# IDE / OS / Agent
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.claude/
+.agents/
+skills-lock.json
+*.sw?

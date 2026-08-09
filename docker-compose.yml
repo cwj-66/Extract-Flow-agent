@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: extract-flow-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-extract}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-extract}
+      POSTGRES_DB: ${POSTGRES_DB:-extract_flow}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-extract} -d ${POSTGRES_DB:-extract_flow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: extract-flow-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 本地开发优先：只起 redis，再在本机跑 celery worker（见 scripts/verify_redis_concurrency.py）
+  # worker:
+  #   build: ...
+  #   command: celery -A app.celery_app worker --loglevel=info --concurrency=${PIPELINE_CONCURRENCY:-3}
+  #   environment:
+  #     REDIS_URL: redis://redis:6379/0
+  #     USE_CELERY: "true"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: extract-flow-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-extract}:${POSTGRES_PASSWORD:-extract}@postgres:5432/${POSTGRES_DB:-extract_flow}
+      REDIS_URL: redis://redis:6379/0
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DECOMPOSER_ENABLED: ${DECOMPOSER_ENABLED:-true}
+      DECOMPOSER_BATCH_SIZE: ${DECOMPOSER_BATCH_SIZE:-5}
+      PIPELINE_CONCURRENCY: ${PIPELINE_CONCURRENCY:-3}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: extract-flow-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  pgdata:
