@@ -123,8 +123,59 @@ class ExtractionResult(BaseModel):
             )
 
 
+class FieldEvidence(BaseModel):
+    """单个字段在原文中的出处。start/end 为 Markdown 字符下标，未命中为 -1。"""
+
+    field: str
+    quote: str = ""
+    start: int = -1
+    end: int = -1
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class ExtractionMetrics(BaseModel):
+    """一次 LLM 提取的成本与延迟。"""
+
+    model: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    elapsed_ms: int = 0
+    estimated_cny: float = 0.0
+    retries: int = 0
+
+
+class ExtractionMeta(BaseModel):
+    """与 15 字段并列持久化的可观测信息。"""
+
+    evidence: list[FieldEvidence] = Field(default_factory=list)
+    metrics: ExtractionMetrics | None = None
+
+
+class ExtractedDocument(BaseModel):
+    """提取引擎完整产出。"""
+
+    result: ExtractionResult
+    meta: ExtractionMeta
+
+
 def empty_extraction_result() -> ExtractionResult:
     return ExtractionResult()
+
+
+def parse_llm_payload(data: dict) -> tuple[dict, dict[str, str]]:
+    """兼容 {fields, evidence} 包装格式与旧的扁平字段 JSON。"""
+    if isinstance(data.get("fields"), dict):
+        quotes: dict[str, str] = {}
+        raw_ev = data.get("evidence") or {}
+        if isinstance(raw_ev, dict):
+            for key, val in raw_ev.items():
+                if isinstance(val, dict):
+                    quotes[str(key)] = str(val.get("quote") or "")
+                elif val is not None:
+                    quotes[str(key)] = str(val)
+        return data["fields"], quotes
+    return data, {}
 
 
 def build_extraction_prompt(markdown: str) -> str:
@@ -134,25 +185,40 @@ def build_extraction_prompt(markdown: str) -> str:
 请提取以下信息，输出为纯 JSON（不要 Markdown 代码块标记）：
 
 {{
-  "company_name": "公司名称，如贵州茅台",
-  "stock_code": "证券代码，如600519.SH",
-  "report_period": "报告期，如2026Q1",
-  "rating": "投资评级，如买入/增持/优于大市",
-  "revenue": {{"value": "营业收入数值", "change": "变动，如同比+18.5%"}},
-  "net_profit": {{"value": "归母净利润数值", "change": "变动"}},
-  "roe": {{"value": "加权平均ROE", "change": "变动，可为空字符串"}},
-  "total_assets": {{"value": "总资产", "change": "较年初变动"}},
-  "net_assets": {{"value": "归母净资产", "change": "较年初变动"}},
-  "business_segments": [
-    {{"name": "业务名称", "value": "收入/规模", "growth": "增速或占比变化"}}
-  ],
-  "profit_forecast": [
-    {{"year": "2026E", "revenue": "营业收入(百万元)", "net_profit": "净利润(百万元)"}},
-    {{"year": "2027E", "revenue": "...", "net_profit": "..."}},
-    {{"year": "2028E", "revenue": "...", "net_profit": "..."}}
-  ],
-  "core_view": "核心观点，一句话",
-  "risks": "风险提示，分号分隔"
+  "fields": {{
+    "company_name": "公司名称，如贵州茅台",
+    "stock_code": "证券代码，如600519.SH",
+    "report_period": "报告期，如2026Q1",
+    "rating": "投资评级，如买入/增持/优于大市",
+    "revenue": {{"value": "营业收入数值", "change": "变动，如同比+18.5%"}},
+    "net_profit": {{"value": "归母净利润数值", "change": "变动"}},
+    "roe": {{"value": "加权平均ROE", "change": "变动，可为空字符串"}},
+    "total_assets": {{"value": "总资产", "change": "较年初变动"}},
+    "net_assets": {{"value": "归母净资产", "change": "较年初变动"}},
+    "business_segments": [
+      {{"name": "业务名称", "value": "收入/规模", "growth": "增速或占比变化"}}
+    ],
+    "profit_forecast": [
+      {{"year": "2026E", "revenue": "营业收入(百万元)", "net_profit": "净利润(百万元)"}},
+      {{"year": "2027E", "revenue": "...", "net_profit": "..."}},
+      {{"year": "2028E", "revenue": "...", "net_profit": "..."}}
+    ],
+    "core_view": "核心观点，一句话",
+    "risks": "风险提示，分号分隔"
+  }},
+  "evidence": {{
+    "company_name": {{"quote": "原文中出现公司名的最短连续片段"}},
+    "stock_code": {{"quote": "原文中的证券代码片段"}},
+    "report_period": {{"quote": "报告期原文"}},
+    "rating": {{"quote": "评级原文"}},
+    "revenue": {{"quote": "营业收入及同比所在句"}},
+    "net_profit": {{"quote": "归母净利润所在句"}},
+    "roe": {{"quote": "ROE 所在句"}},
+    "total_assets": {{"quote": "总资产所在句"}},
+    "net_assets": {{"quote": "净资产所在句"}},
+    "core_view": {{"quote": "支撑核心观点的原文句"}},
+    "risks": {{"quote": "风险提示原文"}}
+  }}
 }}
 
 特别注意：
@@ -161,6 +227,7 @@ def build_extraction_prompt(markdown: str) -> str:
 - MetricPair 的 change 找不到时填空字符串 ""。
 - business_segments 为数组，按研报中出现的业务板块逐条列出；没有则 []。
 - profit_forecast 尽量给出 2026E/2027E/2028E 三行；找不到的数字填"无"。
+- evidence.quote 必须是下方 Markdown 中真实出现的连续原文；找不到则填空字符串。
 - JSON key 必须与上述完全一致。
 
 结构化Markdown内容：

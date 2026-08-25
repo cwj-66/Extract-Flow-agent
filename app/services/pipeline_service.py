@@ -58,6 +58,8 @@ class PipelineService:
         return parse_pdf(file_path).content
 
     def _extract(self, markdown: str) -> dict[str, Any]:
-        from app.extractor import extract_fields
+        from app.extractor.engine import extract_document
+        from app.extractor.meta import attach_meta
 
-        return extract_fields(markdown).model_dump()
+        bundle = extract_document(markdown)
+        return attach_meta(bundle.result.model_dump(), bundle.meta.model_dump())

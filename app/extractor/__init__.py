@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = ["extract_fields", "ExtractionResult"]
+__all__ = ["extract_fields", "extract_document", "ExtractionResult"]
 
 
 def __getattr__(name: str) -> Any:
@@ -12,6 +12,10 @@ def __getattr__(name: str) -> Any:
         from app.extractor.engine import extract_fields
 
         return extract_fields
+    if name == "extract_document":
+        from app.extractor.engine import extract_document
+
+        return extract_document
     if name == "ExtractionResult":
         from app.extractor.schemas import ExtractionResult
 

@@ -52,7 +52,7 @@ export function MarkdownViewer({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-        <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" aria-hidden="true" />
+        <div className="mb-3 h-7 w-7 animate-spin rounded-full border-2 border-brand border-t-transparent" aria-hidden="true" />
         <p className="text-sm">原文生成中…</p>
       </div>
     );

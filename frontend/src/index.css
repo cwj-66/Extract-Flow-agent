@@ -2,26 +2,163 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-primary: #0f766e;
-  --color-primary-hover: #0d6b63;
-  --color-feishu-blue: #3370FF;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
-  --color-muted: #64748B;
-  --font-sans: Inter, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --color-brand: #3370ff;
+  --color-brand-hover: #245bdb;
+  --color-brand-soft: #edf2ff;
+  --color-ink: #18181b;
+  --color-muted: #52525b;
+  --color-subtle: #a1a1aa;
+  --color-line: #e4e4e7;
+  --color-canvas: #f4f4f5;
+  --color-surface: #ffffff;
+  --color-sidebar: #111113;
+  --color-sidebar-fg: #fafafa;
+  --color-sidebar-muted: #a1a1aa;
+  --color-sidebar-hover: #1c1c1f;
+  --color-sidebar-active: #27272a;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-teal-50: #edf2ff;
+  --color-teal-100: #c2d6ff;
+  --color-teal-400: #6aa1ff;
+  --color-teal-500: #3370ff;
+  --color-teal-600: #3370ff;
+  --color-teal-700: #245bdb;
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Inter, "Helvetica Neue", Arial, sans-serif;
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 8px 24px rgb(24 24 27 / 0.04);
 }
 
-body {
-  font-family: var(--font-sans);
-  background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.07), transparent 28%),
-    radial-gradient(circle at top right, rgba(217, 119, 6, 0.06), transparent 26%),
-    linear-gradient(180deg, #f8f5ef 0%, #f4f1ea 100%);
-  min-height: 100vh;
-  color: #1e293b;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-sidebar);
+    min-height: 100vh;
+    color: var(--color-ink);
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer components {
+  .ef-card {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    border-radius: 12px;
+  }
+
+  .ef-card-hover {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .ef-card-hover:hover {
+    border-color: #c2d6ff;
+    box-shadow: var(--shadow-card);
+  }
+
+  .ef-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
+    background: var(--color-canvas);
+    padding: 0.125rem 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    color: var(--color-muted);
+  }
+
+  .ef-icon-tile {
+    display: flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .ef-dropzone {
+    background-image: radial-gradient(circle, #d4d4d8 0.7px, transparent 0.8px);
+    background-size: 14px 14px;
+  }
+
+  .ef-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: 8px;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  }
+
+  .ef-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .ef-btn-primary {
+    background: var(--color-brand);
+    color: #fff;
+  }
+
+  .ef-btn-primary:hover:not(:disabled) {
+    background: var(--color-brand-hover);
+  }
+
+  .ef-btn-secondary {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .ef-btn-secondary:hover:not(:disabled) {
+    background: var(--color-canvas);
+  }
+
+  .ef-btn-ghost {
+    color: var(--color-muted);
+  }
+
+  .ef-btn-ghost:hover:not(:disabled) {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  .ef-input {
+    width: 100%;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+  }
+
+  .ef-input::placeholder {
+    color: var(--color-subtle);
+  }
+
+  .ef-input:focus {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgba(51, 112, 255, 0.15);
+  }
 }

@@ -1,4 +1,4 @@
-import { apiBlobRequest, apiRequest } from './client';
+import { apiBlobRequest, apiRequest, getApiBaseUrl } from './client';
 import type {
   BatchResponse,
   BatchUploadResponse,
@@ -117,4 +117,24 @@ export function confirmTask(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+}
+
+export function subscribeTaskEvents(
+  taskId: string,
+  onEvent: (task: TaskSummary) => void,
+  onError?: () => void
+): () => void {
+  const url = `${getApiBaseUrl()}/tasks/${encodeURIComponent(taskId)}/events`;
+  const source = new EventSource(url);
+  source.onmessage = (event) => {
+    try {
+      onEvent(JSON.parse(event.data) as TaskSummary);
+    } catch {
+      // ignore malformed frames
+    }
+  };
+  source.onerror = () => {
+    onError?.();
+  };
+  return () => source.close();
 }

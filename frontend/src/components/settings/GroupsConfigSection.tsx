@@ -127,37 +127,32 @@ export function GroupsConfigSection() {
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">加载群配置…</p>;
+    return <p className="text-sm text-muted">加载群配置…</p>;
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">
-          在目标群添加自定义机器人后粘贴 Webhook；显示名称仅用于本页下拉选择。
-        </p>
-        <div className="flex shrink-0 gap-2">
+      <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={save}
             disabled={!dirty || saving}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="ef-btn ef-btn-primary"
           >
             {saving ? '保存中…' : '保存'}
           </button>
           <button
             type="button"
             onClick={addGroup}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-100"
+            className="ef-btn ef-btn-secondary"
           >
             <Plus className="h-3.5 w-3.5" />
             添加群
           </button>
-        </div>
       </div>
 
       {groups.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50 py-10 text-center text-sm text-slate-400">
+        <div className="rounded-xl border border-dashed border-line bg-canvas py-12 text-center text-sm text-subtle">
           暂无发送目标，点击「添加群」开始
         </div>
       ) : (
@@ -165,11 +160,11 @@ export function GroupsConfigSection() {
           {groups.map((group) => (
             <div
               key={group.id}
-              className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm"
+              className="rounded-xl border border-line bg-canvas/60 p-4"
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                  <label className="mb-1 block text-xs font-medium text-muted">
                     显示名称 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -177,13 +172,13 @@ export function GroupsConfigSection() {
                     value={group.name}
                     onChange={(e) => updateGroup(group.id, { name: e.target.value })}
                     placeholder="如：投研内部群"
-                    className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+                    className="ef-input"
                   />
-                  <p className="mt-1 text-[11px] text-slate-400">仅用于下拉选择，与飞书群名无强制对应</p>
+                  <p className="mt-1 text-[11px] text-subtle">仅用于下拉选择，与飞书群名无强制对应</p>
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                  <label className="mb-1 block text-xs font-medium text-muted">
                     Webhook URL <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -192,12 +187,12 @@ export function GroupsConfigSection() {
                       value={group.webhook_url}
                       onChange={(e) => updateGroup(group.id, { webhook_url: e.target.value })}
                       placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
-                      className="w-full rounded-lg border border-stone-200 py-1.5 pl-3 pr-9 text-sm text-slate-900 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+                      className="ef-input pr-9"
                     />
                     <button
                       type="button"
                       onClick={() => toggleWebhook(group.id)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-subtle hover:text-ink"
                       aria-label={visibleWebhooks.has(group.id) ? '隐藏' : '显示'}
                     >
                       {visibleWebhooks.has(group.id) ? (
@@ -211,13 +206,13 @@ export function GroupsConfigSection() {
               </div>
 
               <div className="mt-3 flex items-center justify-between">
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
                   <input
                     type="radio"
                     name="default-group"
                     checked={group.is_default}
                     onChange={() => updateGroup(group.id, { is_default: true })}
-                    className="accent-teal-600"
+                    className="accent-brand"
                   />
                   设为默认群
                 </label>

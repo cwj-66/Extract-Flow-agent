@@ -5,7 +5,7 @@ interface SkeletonProps {
 function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse rounded bg-stone-200 ${className}`}
+      className={`animate-pulse rounded bg-line ${className}`}
       aria-hidden="true"
     />
   );
@@ -29,7 +29,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 
 export function CardSkeleton() {
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6" aria-busy="true" aria-label="加载中">
+    <div className="space-y-4 rounded-xl border border-line bg-surface p-6" aria-busy="true" aria-label="加载中">
       <Skeleton className="h-6 w-1/3" />
       <Skeleton className="h-4 w-2/3" />
       <div className="space-y-2">
@@ -43,7 +43,7 @@ export function CardSkeleton() {
 
 export function FieldSkeleton() {
   return (
-    <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6" aria-busy="true">
+    <div className="space-y-6 rounded-xl border border-line bg-surface p-6" aria-busy="true">
       {[1, 2, 3].map((g) => (
         <div key={g} className="space-y-3">
           <Skeleton className="h-5 w-24" />

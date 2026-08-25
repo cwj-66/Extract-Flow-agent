@@ -1,7 +1,8 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { BatchDetailPage } from '../pages/BatchDetailPage';
 import { FeishuGroupsPage } from '../pages/FeishuGroupsPage';
+import { OverviewPage } from '../pages/OverviewPage';
 import { UploadPage } from '../pages/UploadPage';
 import { TaskListPage } from '../pages/TaskListPage';
 import { TaskDetailPage } from '../pages/TaskDetailPage';
@@ -12,7 +13,7 @@ const router = createBrowserRouter([
     path: '/',
     element: <AppLayout />,
     children: [
-      { index: true, element: <Navigate to="/upload" replace /> },
+      { index: true, element: <OverviewPage /> },
       { path: 'config/groups', element: <FeishuGroupsPage /> },
       { path: 'upload', element: <UploadPage /> },
       { path: 'batches/:id', element: <BatchDetailPage /> },

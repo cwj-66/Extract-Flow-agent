@@ -98,28 +98,28 @@ export function BatchDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200/70 bg-white/90 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-50"
+          className="ef-btn ef-btn-secondary"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           返回
         </button>
         <Link
           to="/upload"
-          className="text-sm font-medium text-teal-600 hover:text-teal-700"
+          className="text-sm font-medium text-brand hover:underline"
         >
           继续上传
         </Link>
       </div>
 
       {loading && !batch ? (
-        <div className="rounded-2xl border border-stone-200/70 bg-white/90 p-4 shadow-sm">
+        <div className="ef-card p-4">
           <TableSkeleton />
         </div>
       ) : error ? (
         <ErrorState message={error} onRetry={() => setReloadKey((k) => k + 1)} />
       ) : batch ? (
         <>
-          <div className="rounded-2xl border border-stone-200/70 bg-white/90 p-6 shadow-sm">
+          <div className="ef-card p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-slate-500">
@@ -137,7 +137,7 @@ export function BatchDetailPage() {
                 </p>
               </div>
               {inFlight > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-sm text-teal-700">
+                <div className="flex items-center gap-2 rounded-md bg-brand-soft px-3 py-2 text-sm text-brand">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   {inFlight} 个处理中（最多 3 个并发）
                 </div>
@@ -160,7 +160,7 @@ export function BatchDetailPage() {
                 aria-label="批次处理进度"
               >
                 <div
-                  className="h-full rounded-full bg-teal-600 transition-all duration-500"
+                  className="h-full rounded-full bg-brand transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -173,7 +173,7 @@ export function BatchDetailPage() {
                 </span>
               )}
               {batch.counts.parsing + batch.counts.extracting > 0 && (
-                <span className="rounded-full bg-teal-100 px-2.5 py-1 text-teal-700">
+                <span className="rounded bg-brand-soft px-2.5 py-1 text-brand">
                   处理中 {batch.counts.parsing + batch.counts.extracting}
                 </span>
               )}
@@ -208,7 +208,7 @@ export function BatchDetailPage() {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-2xl border border-stone-200/70 bg-white/90 shadow-md">
+          <div className="ef-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead>
@@ -248,7 +248,7 @@ export function BatchDetailPage() {
                         <Link
                           to={`/tasks/${task.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
                         >
                           查看
                           <ChevronRight className="h-3 w-3" aria-hidden="true" />

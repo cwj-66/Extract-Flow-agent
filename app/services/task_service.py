@@ -26,7 +26,8 @@ from app.api.schemas.task import (
 )
 from app.db.models import SendLogRow
 from app.db.session import get_session_factory
-from app.extractor.schemas import ExtractionResult
+from app.extractor.meta import attach_meta, split_meta
+from app.extractor.schemas import ExtractionMeta, ExtractionResult
 from app.feishu.card_builder import build_report_card
 from app.feishu.client import FeishuClient
 from app.services.exceptions import (
@@ -195,11 +196,15 @@ class TaskService:
         record = self._require(task_id)
         if record.extraction is None:
             raise TaskStateError(task_id, "提取结果尚未就绪")
+        fields_dict, meta_dict = split_meta(record.extraction)
+        meta = ExtractionMeta.model_validate(meta_dict) if meta_dict else ExtractionMeta()
         return TaskResultResponse(
             task_id=record.id,
             status=record.status,
             source_file=record.source_file,
-            fields=ExtractionResult.model_validate(record.extraction),
+            fields=ExtractionResult.model_validate(fields_dict),
+            evidence=meta.evidence,
+            metrics=meta.metrics,
             extracted_at=record.extracted_at,
         )
 
@@ -239,10 +244,12 @@ class TaskService:
         if record.extraction is None:
             raise TaskStateError(task_id, "缺少提取结果，无法确认发送")
 
-        ai_fields = deepcopy(record.extraction)
+        fields_dict, meta_dict = split_meta(record.extraction)
+        ai_fields = deepcopy(fields_dict)
         if body.fields is not None:
-            record.extraction = body.fields.model_dump()
-        final_fields = deepcopy(record.extraction)
+            record.extraction = attach_meta(body.fields.model_dump(), meta_dict)
+        final_fields, _ = split_meta(record.extraction)
+        final_fields = deepcopy(final_fields)
 
         group_id = (body.group_id or "").strip()
         resolved = self._resolve_group(group_id)

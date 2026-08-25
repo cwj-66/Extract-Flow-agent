@@ -21,6 +21,8 @@
 - 一键部署：`docker compose up -d` 拉起 Postgres / Redis / API / 前端
 - CLI 与 API 共用 `app/pipeline.py`，编排逻辑不重复
 
+
+
 ## 技术栈
 
 - Python 3.10 – 3.12
@@ -31,7 +33,11 @@
 - React 19 · Vite · Tailwind CSS · Zustand
 - Docker Compose · Postgres · Redis · Nginx
 
+
+
 ## 系统流程
+
+
 
 ### 主流程
 
@@ -43,11 +49,15 @@
 6. **卡片渲染**：构建飞书 Card v2，支持分组表格与标题字段
 7. **确认发送**：用户编辑字段、选择目标群，Webhook 推送飞书
 
+
+
 ### 任务状态机
 
 ```
 queued → parsing → extracting → pending_confirm → sending → sent | failed
 ```
+
+
 
 ### 成本控制要点
 
@@ -55,11 +65,13 @@ queued → parsing → extracting → pending_confirm → sending → sent | fai
 - 解析、OCR、表格识别、图片哈希去重均在本地完成
 - 装饰图、水印、无关内容在进 LLM 前尽量滤净，降低输入 Token 量
 
+
+
 ### 默认提取字段（15 项）
 
 `company_name` · `stock_code` · `report_period` · `revenue` · `net_profit` · `roe` · `total_assets` · `net_assets` · `rating` · `profit_forecast_2026E` · `profit_forecast_2027E` · `profit_forecast_2028E` · `business_highlights` · `core_logic` · `risks`
 
-字段定义见 [`app/extractor/schemas.py`](app/extractor/schemas.py)。
+字段定义见 `[app/extractor/schemas.py](app/extractor/schemas.py)`。
 
 ## 项目结构
 
@@ -94,6 +106,8 @@ queued → parsing → extracting → pending_confirm → sending → sent | fai
 └── tests/                      # 单元测试
 ```
 
+
+
 ## 后端能力（FastAPI）
 
 主要接口：
@@ -127,23 +141,25 @@ API 文档：[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 前端工作台支持：
 
-- 配置提取字段模板（默认 15 字段 / 自定义扩展 / 重置）
+- 总览：管线说明、任务统计、待审阅队列与 API 健康状态
 - 配置飞书目标群
 - 单文件 / 批量上传研报
 - 查看任务列表，按状态筛选与搜索
 - 轮询任务进度，查看清洗后 Markdown 原文
-- 编辑提取字段，预览飞书卡片样式
+- 编辑提取字段，定位原文出处，预览飞书卡片样式
 - 确认发送至目标群
 
 主要页面路由：
 
-- `/config/fields` — 字段配置
+- `/` — 总览（管线、待审阅队列、任务统计）
 - `/config/groups` — 群聊配置
 - `/upload` — 上传研报
 - `/tasks` — 任务列表
 - `/tasks/:id` — 任务详情（字段编辑 + 卡片预览 + 确认发送）
 - `/batches/:id` — 批量任务进度
 - `/settings` — 通用设置
+
+
 
 ## 快速启动（推荐）
 
@@ -158,21 +174,25 @@ docker compose up -d
 
 首次会构建 backend / frontend（较慢，Dockerfile 已配国内镜像源）；之后直接 `docker compose up -d` 即可。Compose 会注入 Postgres，无需再手写本机 `DATABASE_URL`。
 
-访问：
+访问（Compose 里的前端是**构建产物**，改代码不会热更新）：
 
-- 前端：`http://localhost:5173`
+- 前端（Docker 演示）：`http://localhost:8080`
 - 后端 / API 文档：`http://localhost:8000/docs`
 - 健康检查：`http://localhost:8000/health`
 
+改界面请走下面「本机开发」，用 Vite 热重载，不要反复 `docker compose build`。
+
 飞书机器人 Webhook 在前端「飞书通知」页配置并写入数据库，不走环境变量。
 
-| 变量 | 必填 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `DASHSCOPE_API_KEY` | 是 | — | 阿里云 DashScope API Key |
-| `POSTGRES_USER` / `PASSWORD` / `DB` | 否 | `extract` / `extract` / `extract_flow` | Compose 数据库账号 |
-| `PIPELINE_CONCURRENCY` | 否 | `3` | 并发处理任务数上限 |
-| `DECOMPOSER_ENABLED` | 否 | `true` | 是否启用多模态内容分解 |
-| `DECOMPOSER_BATCH_SIZE` | 否 | `5` | 分解批大小 |
+
+| 变量                                  | 必填  | 默认值                                    | 说明                    |
+| ----------------------------------- | --- | -------------------------------------- | --------------------- |
+| `DASHSCOPE_API_KEY`                 | 是   | —                                      | 阿里云 DashScope API Key |
+| `POSTGRES_USER` / `PASSWORD` / `DB` | 否   | `extract` / `extract` / `extract_flow` | Compose 数据库账号         |
+| `PIPELINE_CONCURRENCY`              | 否   | `3`                                    | 并发处理任务数上限             |
+| `DECOMPOSER_ENABLED`                | 否   | `true`                                 | 是否启用多模态内容分解           |
+| `DECOMPOSER_BATCH_SIZE`             | 否   | `5`                                    | 分解批大小                 |
+
 
 常用命令：
 
@@ -182,18 +202,33 @@ docker compose logs -f     # 看日志
 docker compose down        # 停止（数据卷保留）
 ```
 
-## 本机开发（可选）
 
-改代码需要热重载时，可只起基础设施，前后端本机跑：
+
+## 本机开发（改代码用这个）
+
+Docker 只起数据库 / 缓存 / 后端；**前端用 Vite**，保存即刷新，不必重建镜像：
+
+```bash
+docker compose up -d postgres redis backend
+docker compose stop frontend   # 避免占用 5173
+
+cp .env.example .env   # 填 DASHSCOPE_API_KEY
+cd frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+浏览器打开 `http://127.0.0.1:5173`。
+
+若还要热重载 Python API，可停掉 Compose 里的 backend，改用：
 
 ```bash
 docker compose up -d postgres redis
-cp .env.example .env   # 填 DASHSCOPE_API_KEY；示例已含本机 Postgres URL
 pip install -r requirements-api.txt
 cd my_project && pip install -e . && cd ..
 uvicorn app.api.main:app --reload --host 127.0.0.1 --port 8000
-cd frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
+cd frontend && npm run dev -- --host 127.0.0.1 --port 5173
 ```
+
+
 
 ### CLI 调试
 
@@ -205,6 +240,8 @@ python main.py report.pdf -o output.md
 python main.py report.pdf --extract -o card.json
 python main.py report.pdf --stats
 ```
+
+
 
 ### 运行测试
 

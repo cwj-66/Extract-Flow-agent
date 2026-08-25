@@ -118,7 +118,7 @@ export function ConfirmSendModal({
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
               disabled={loading}
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+              className="ef-input"
             >
               <option value="">{loading ? '加载中…' : '请选择群'}</option>
               {groups.map((g) => (
@@ -149,7 +149,7 @@ export function ConfirmSendModal({
           <button
             onClick={handleSend}
             disabled={sending || loading || !selectedGroupId}
-            className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700 disabled:opacity-50"
+            className="ef-btn ef-btn-primary"
             aria-busy={sending}
           >
             {sending ? (

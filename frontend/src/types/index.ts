@@ -100,11 +100,31 @@ export interface BatchResponse {
   tasks: TaskSummary[];
 }
 
+export interface FieldEvidence {
+  field: string;
+  quote: string;
+  start: number;
+  end: number;
+  confidence: number;
+}
+
+export interface ExtractionMetrics {
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  elapsed_ms: number;
+  estimated_cny: number;
+  retries: number;
+}
+
 export interface TaskResultResponse {
   task_id: string;
   status: TaskStatus;
   source_file: string;
   fields: ExtractionFields;
+  evidence: FieldEvidence[];
+  metrics: ExtractionMetrics | null;
   extracted_at: string | null;
 }
 

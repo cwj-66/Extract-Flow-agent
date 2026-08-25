@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.api.deps import TaskServiceDep, UserIdDep
 from app.api.schemas.task import (
@@ -66,6 +69,45 @@ async def download_original_file(service: TaskServiceDep, task_id: str) -> FileR
     except TaskStateError as exc:
         raise HTTPException(status_code=409, detail=exc.message) from exc
     return FileResponse(path, filename=filename, media_type="application/octet-stream")
+
+
+_TERMINAL_STATUSES = {TaskStatus.SENT, TaskStatus.FAILED}
+
+
+@router.get("/{task_id}/events")
+async def stream_task_events(service: TaskServiceDep, task_id: str) -> StreamingResponse:
+    """SSE：任务状态变化即推送，工作台用来展示管线步进。"""
+
+    async def event_gen():
+        last = ""
+        try:
+            while True:
+                try:
+                    summary = service.get_task(task_id)
+                except TaskNotFoundError:
+                    yield f"event: error\ndata: {json.dumps({'detail': 'task not found'})}\n\n"
+                    return
+                payload = summary.model_dump(mode="json")
+                encoded = json.dumps(payload, ensure_ascii=False)
+                if encoded != last:
+                    yield f"data: {encoded}\n\n"
+                    last = encoded
+                if summary.status in _TERMINAL_STATUSES:
+                    yield "event: done\ndata: {}\n\n"
+                    return
+                await asyncio.sleep(0.6)
+        except asyncio.CancelledError:
+            return
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/{task_id}/content", response_model=TaskContentResponse)

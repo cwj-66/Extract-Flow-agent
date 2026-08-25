@@ -3,11 +3,11 @@ import { STATUS_META } from '../../lib/status';
 import { Loader2 } from 'lucide-react';
 
 const COLOR_CLASSES: Record<string, string> = {
-  slate: 'bg-slate-100 text-slate-700',
-  teal: 'bg-teal-50 text-teal-700 border border-teal-100',
-  amber: 'bg-amber-100 text-amber-700',
-  green: 'bg-green-100 text-green-700',
-  red: 'bg-red-100 text-red-700',
+  slate: 'bg-canvas text-muted',
+  brand: 'bg-brand-soft text-brand',
+  amber: 'bg-amber-50 text-amber-700',
+  green: 'bg-emerald-50 text-emerald-700',
+  red: 'bg-red-50 text-red-600',
 };
 
 interface StatusBadgeProps {
@@ -20,7 +20,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}
+      className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ${colorClass}`}
       aria-label={`状态：${meta.label}`}
     >
       {meta.spinning && (

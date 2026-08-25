@@ -7,7 +7,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from app.extractor.schemas import ExtractionResult
+from app.extractor.schemas import ExtractionMetrics, ExtractionResult, FieldEvidence
 
 
 class TaskStatus(str, Enum):
@@ -102,6 +102,14 @@ class TaskResultResponse(BaseModel):
     status: TaskStatus
     source_file: str
     fields: ExtractionResult = Field(description="固定研报提取结果")
+    evidence: list[FieldEvidence] = Field(
+        default_factory=list,
+        description="字段在清洗 Markdown 中的出处，供工作台高亮",
+    )
+    metrics: ExtractionMetrics | None = Field(
+        default=None,
+        description="本次 LLM 提取的 token / 耗时 / 估算成本",
+    )
     extracted_at: datetime | None = None
 
 

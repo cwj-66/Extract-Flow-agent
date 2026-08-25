@@ -24,7 +24,7 @@ export function GeneralSettingsSection() {
   return (
     <div className="space-y-5">
       <div>
-        <label htmlFor="display-name" className="mb-1.5 block text-xs font-medium text-slate-700">
+        <label htmlFor="display-name" className="mb-1.5 block text-xs font-medium text-muted">
           显示名称
         </label>
         <input
@@ -33,15 +33,15 @@ export function GeneralSettingsSection() {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="可选，用于发送记录标识"
-          className="w-full max-w-sm rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="ef-input max-w-sm"
         />
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-subtle">
           未填写时记为匿名。登录能力接入前，仅作本机标识。
         </p>
       </div>
 
       <div>
-        <label htmlFor="poll-interval" className="mb-1.5 block text-xs font-medium text-slate-700">
+        <label htmlFor="poll-interval" className="mb-1.5 block text-xs font-medium text-muted">
           任务状态刷新间隔（秒）
         </label>
         <input
@@ -51,15 +51,15 @@ export function GeneralSettingsSection() {
           max={30}
           value={pollIntervalSec}
           onChange={(e) => setPollIntervalSec(Number(e.target.value))}
-          className="w-32 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="ef-input w-32"
         />
-        <p className="mt-1 text-xs text-slate-400">处理中的任务会按此间隔自动刷新状态。</p>
+        <p className="mt-1 text-xs text-subtle">处理中的任务会按此间隔自动刷新状态。</p>
       </div>
 
       <button
         type="button"
         onClick={handleSave}
-        className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="ef-btn ef-btn-primary"
       >
         保存偏好
       </button>
