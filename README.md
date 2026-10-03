@@ -1,268 +1,327 @@
-# 萃报
 
-券商研报摘要与飞书推送工作台。  
-以 **MinerU 文档解析 + DashScope LLM 提取** 为管线核心，完成 PDF 清洗、结构化字段抽取、人工确认与飞书 Card v2 推送，前后端为 **React + FastAPI + Docker Compose**。
+
+# 萃报 · Extract Flow
+
+**券商研报解析、结构化提取与飞书推送工作台**
+
+从一份 PDF 到一张可审阅、可编辑、可分享的研报卡片。
+
+![Python](https://img.shields.io/badge/Python-3.10–3.12-3776AB?style=flat-square&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Pydantic_v2-009688?style=flat-square&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white)
+![MinerU](https://img.shields.io/badge/MinerU-3.x-7C3AED?style=flat-square)
+![DashScope](https://img.shields.io/badge/LLM-DashScope-F97316?style=flat-square)
+![Docker Compose](https://img.shields.io/badge/Deploy-Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
+
+[核心能力](#核心能力) · [架构设计](#架构设计) · [结构化结果](#结构化结果) · [快速启动](#快速启动) · [开发与测试](#开发与测试)
+
+
+
+---
+
+
 
 ## 项目简介
 
-这个项目不是简单文件转换工具，也不是一次性 LLM 问答 Demo，而是一个更贴近真实投研场景的小型自动化系统：
+研报中的财务指标、业务拆分、盈利预测和风险提示分散在正文、表格与图表中，整理成摘要通常需要反复查找、核对和复制。
 
-- 用户可以上传 PDF 研报，或批量提交多份 PDF
-- 系统自动完成版面解析、表格 / 图表分路处理，输出结构化 Markdown
-- 基于 DashScope 提取默认 15 个研报字段，支持自定义扩展与分组
-- 用户在 Web 工作台预览、编辑字段，确认后推送飞书卡片
-- 同时提供 CLI 一键跑通，供本地调试与脚本集成
+**萃报**将这套流程串联为一个 Web 工作台：上传 PDF 后，系统通过 MinerU 解析文档，结合视觉模型补充图像信息，再由 DashScope 提取结构化研报字段。用户对照解析后的原文审阅和修改结果，确认后发送至飞书群。
 
-## 项目亮点
+项目围绕 **文档理解、结果可追溯、人工审阅和任务管理**展开，提供 React 前端、FastAPI 后端及共用管线的 CLI 入口。
 
-- 完整任务流：上传 → 解析 → 提取 → 人工确认 → 飞书推送，支持轮询与批量
-- 成本可控：MinerU + 多模态分解在本地完成清洗，仅 LLM 提取消耗 Token
-- 前后端分离：FastAPI / Pydantic v2 契约 + React 工作台（字段编辑、卡片预览）
-- 一键部署：`docker compose up -d` 拉起 Postgres / Redis / API / 前端
-- CLI 与 API 共用 `app/pipeline.py`，编排逻辑不重复
+## 核心能力
 
 
+| 能力              | 实现方式                                       |
+| --------------- | ------------------------------------------ |
+| 📄 **PDF 文档解析** | MinerU `pipeline` 后端解析正文、表格与公式，生成 Markdown |
+| 🖼️ **图像信息补充**  | 图片去重与过滤，按上下文区分图表和普通图片，调用视觉模型生成描述           |
+| 🧩 **结构化提取**    | JSON 模式输出，Pydantic 校验，JSON 解析失败时修复重试       |
+| 🔎 **原文出处定位**   | 为字段记录原文摘录和 Markdown 位置，辅助审阅时回查依据           |
+| ✏️ **人工确认**     | 工作台编辑字段、预览卡片并选择目标群，确认后发送                   |
+| 📬 **飞书卡片推送**   | 构建 Card v2，记录发送结果及修改前后字段，发送失败可再次确认         |
+| 📚 **批量任务管理**   | 单份 / 批量上传、进度轮询、历史搜索、状态筛选与原文件下载             |
+| 📊 **提取用量统计**   | 记录字段提取的 Token、耗时、重试次数与估算费用                 |
+
+
+
+
+## 架构设计
+
+```mermaid
+flowchart LR
+    A["📄 PDF 研报"] --> B["MinerU 本地解析"]
+    B --> C["正文 · 表格 · 公式"]
+    B --> D["图片过滤与去重"]
+    D --> E["视觉模型描述"]
+    C --> F["结构化 Markdown"]
+    E --> F
+    F --> G["DashScope 字段提取"]
+    G --> H["结构校验 · 出处定位"]
+    H --> I["✏️ 人工审阅与编辑"]
+    I --> J["📬 飞书 Card v2"]
+
+    classDef input fill:#EFF6FF,stroke:#3B82F6,color:#1E3A8A;
+    classDef local fill:#ECFDF5,stroke:#10B981,color:#064E3B;
+    classDef model fill:#F5F3FF,stroke:#8B5CF6,color:#4C1D95;
+    classDef review fill:#FFF7ED,stroke:#F97316,color:#7C2D12;
+    class A,J input;
+    class B,C,D,F local;
+    class E,G,H model;
+    class I review;
+```
+
+
+
+
+
+### 关键工程设计
+
+- **管线复用**：CLI、API 与 Celery 执行路径复用 [app/pipeline.py](app/pipeline.py)，文档解析、提取与卡片构建保持统一编排。
+- **业务与 HTTP 分离**：路由负责请求和响应映射，任务处理、群配置、确认发送等逻辑位于 `app/services/`。
+- **解析进程隔离**：MinerU 在独立子进程中运行，设置超时和资源相关环境变量，由管线接收解析结果或错误。
+- **结果与依据并存**：结构化字段之外保留原文出处和提取用量；出处指向解析后的 Markdown，便于与模型输入对照。
+- **人工确认后发送**：模型生成结果先进入待确认状态，用户可修改字段；发送记录保留修改前后内容和成功 / 失败结果。
+- **任务持久化与并发控制**：本地默认使用 SQLite，Compose 使用 Postgres；默认由进程内队列限制并发，另提供 Celery + Redis 执行路径。
+
+
+
+### 任务生命周期
+
+正常流程：
+
+```text
+queued → parsing → extracting → pending_confirm → sending → sent
+ 排队      解析中      提取中          待确认          发送中    已发送
+```
+
+处理或发送异常时进入 `failed`；保留提取结果的失败任务可再次确认发送。
+
+### 本地处理与云端调用
+
+MinerU 文档解析、图片哈希去重与过滤在本地完成；**图像描述和字段提取调用 DashScope 云端模型**。通过先解析、再过滤、最后提取，减少无关内容进入模型输入。
+
+工作台中的 Token 与费用统计对应**字段提取阶段**，费用按配置单价估算，不代表包含图像描述在内的完整账单。
+
+## 结构化结果
+
+当前结果模型按业务语义组织为 **13 个顶层字段**，其中财务指标包含数值与变动，业务板块和盈利预测使用结构化数组。
+
+
+| 信息类别  | 字段                                                               | 内容                        |
+| ----- | ---------------------------------------------------------------- | ------------------------- |
+| 基础信息  | `company_name` · `stock_code` · `report_period` · `rating`       | 公司、证券代码、报告期与评级            |
+| 财务指标  | `revenue` · `net_profit` · `roe` · `total_assets` · `net_assets` | `value` 数值与 `change` 变动说明 |
+| 业务板块  | `business_segments`                                              | 各板块名称、收入 / 规模与增速          |
+| 盈利预测  | `profit_forecast`                                                | 按年份组织收入与净利润预测             |
+| 观点与风险 | `core_view` · `risks`                                            | 核心观点与风险提示                 |
+
+
+字段定义见 [ExtractionResult](app/extractor/schemas.py)。以下为**结构示例，数据为虚构**：
+
+```json
+{
+  "company_name": "示例公司",
+  "stock_code": "000000.SZ",
+  "report_period": "2026Q1",
+  "rating": "增持",
+  "revenue": { "value": "100亿元", "change": "同比+10%" },
+  "net_profit": { "value": "12亿元", "change": "同比+8%" },
+  "roe": { "value": "6%", "change": "同比+0.2个百分点" },
+  "total_assets": { "value": "500亿元", "change": "较年初+3%" },
+  "net_assets": { "value": "200亿元", "change": "较年初+2%" },
+  "business_segments": [
+    { "name": "主营业务", "value": "80亿元", "growth": "同比+12%" }
+  ],
+  "profit_forecast": [
+    { "year": "2026E", "revenue": "42000", "net_profit": "5000" }
+  ],
+  "core_view": "主营业务增长，盈利能力保持稳定。",
+  "risks": "需求不及预期；行业竞争加剧"
+}
+```
+
+
+
+## 工作台使用流程
+
+1. **配置目标群**：在「飞书通知」中添加并保存机器人 Webhook。
+2. **上传研报**：提交单份或多份 PDF，查看任务 / 批次进度。
+3. **审阅结果**：对照清洗后的 Markdown 查看字段出处，修改提取内容并预览卡片。
+4. **确认发送**：选择目标群，发送飞书卡片；在任务详情查看发送状态。
+
+总览页展示任务统计、待审阅队列与 API 健康状态；历史任务支持搜索、状态筛选和原文件下载。
 
 ## 技术栈
 
-- Python 3.10 – 3.12
-- FastAPI · Pydantic v2 · uvicorn
-- MinerU 3.x（`pipeline` 后端）
-- 阿里云 DashScope（OpenAI 兼容接口）
-- 飞书 Card v2 Webhook
-- React 19 · Vite · Tailwind CSS · Zustand
-- Docker Compose · Postgres · Redis · Nginx
+
+| 层次    | 技术                                                              |
+| ----- | --------------------------------------------------------------- |
+| 文档与模型 | MinerU 3.x `pipeline` · DashScope OpenAI 兼容接口                   |
+| 后端    | Python 3.10–3.12 · FastAPI · Pydantic v2 · uvicorn · SQLAlchemy |
+| 前端    | React 19 · TypeScript · Vite · Tailwind CSS · Zustand           |
+| 存储与任务 | SQLite / Postgres · 进程内任务队列 · 可选 Celery + Redis                 |
+| 部署与通知 | Docker Compose · Nginx · 飞书 Card v2 Webhook                     |
 
 
 
-## 系统流程
 
+## 快速启动
 
+准备好 [Docker Desktop](https://www.docker.com/products/docker-desktop/) 和 DashScope API Key，在项目根目录执行：
 
-### 主流程
-
-1. **文档接入**：仅接受 PDF，走 MinerU 解析
-2. **版面解析与区域路由**：区分正文、表格、图表、装饰图，不同类型走不同处理链路
-3. **分类型处理**：正文本地提取、表格转 Markdown、图表裁剪后送 VLM 描述、装饰图过滤丢弃
-4. **合并结构化内容**：统一输出干净 Markdown，供 LLM 使用
-5. **LLM 字段提取**：按 JSON Schema 约束输出研报字段（默认 15 项）
-6. **卡片渲染**：构建飞书 Card v2，支持分组表格与标题字段
-7. **确认发送**：用户编辑字段、选择目标群，Webhook 推送飞书
-
-
-
-### 任务状态机
-
-```
-queued → parsing → extracting → pending_confirm → sending → sent | failed
+```bash
+git clone https://github.com/cwj-66/Extract-Flow-agent.git
+cd Extract-Flow-agent
+cp .env.example .env
 ```
 
+在 `.env` 中填写 `DASHSCOPE_API_KEY`，然后启动服务：
+
+```bash
+docker compose up -d
+```
+
+首次启动会构建后端与前端镜像。Compose 编排 Postgres、Redis、API 与前端，并为后端注入数据库连接配置。
 
 
-### 成本控制要点
+| 入口            | 地址                                                    |
+| ------------- | ----------------------------------------------------- |
+| 🖥️ Web 工作台   | [localhost:8080](http://localhost:8080)               |
+| 📖 交互式 API 文档 | [localhost:8000/docs](http://localhost:8000/docs)     |
+| 💚 健康检查       | [localhost:8000/health](http://localhost:8000/health) |
 
-- 仅 **LLM 提取** 环节消耗 API Token
-- 解析、OCR、表格识别、图片哈希去重均在本地完成
-- 装饰图、水印、无关内容在进 LLM 前尽量滤净，降低输入 Token 量
+
+飞书 Webhook 通过工作台「飞书通知」配置并存入数据库。
+
+**环境变量与常用命令**
+
+
+| 变量                      | 默认值            | 说明                   |
+| ----------------------- | -------------- | -------------------- |
+| `DASHSCOPE_API_KEY`     | —              | 图像描述与字段提取所需的 API Key |
+| `POSTGRES_USER`         | `extract`      | Compose 数据库用户名       |
+| `POSTGRES_PASSWORD`     | `extract`      | Compose 数据库密码        |
+| `POSTGRES_DB`           | `extract_flow` | Compose 数据库名称        |
+| `PIPELINE_CONCURRENCY`  | `3`            | 默认队列的管线并发数           |
+| `DECOMPOSER_ENABLED`    | `true`         | 是否启用图像内容分解           |
+| `DECOMPOSER_BATCH_SIZE` | `5`            | 图像分解批大小              |
+
+
+```bash
+docker compose ps          # 查看服务状态
+docker compose logs -f     # 查看日志
+docker compose down        # 停止服务，保留数据卷
+```
 
 
 
-### 默认提取字段（15 项）
+## 开发与测试
 
-`company_name` · `stock_code` · `report_period` · `revenue` · `net_profit` · `roe` · `total_assets` · `net_assets` · `rating` · `profit_forecast_2026E` · `profit_forecast_2027E` · `profit_forecast_2028E` · `business_highlights` · `core_logic` · `risks`
 
-字段定义见 `[app/extractor/schemas.py](app/extractor/schemas.py)`。
+
+### 前端开发
+
+先按快速启动步骤准备 `.env`，再启动数据库、Redis 与后端：
+
+```bash
+docker compose up -d postgres redis backend
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+访问 [127.0.0.1:5173](http://127.0.0.1:5173)，使用 Vite 热更新。Compose 中的前端位于 8080，提供构建后的静态页面。
+
+**本机 Python API 与 CLI**
+
+使用 Python 3.10–3.12，在项目根目录创建并激活虚拟环境，然后安装依赖：
+
+```bash
+pip install -r requirements-api.txt
+pip install -e ./my_project
+```
+
+本机运行时需将 `DASHSCOPE_API_KEY` 设置为进程环境变量。例如 PowerShell：
+
+```powershell
+$env:DASHSCOPE_API_KEY = "your-api-key"
+```
+
+默认使用本地 SQLite。若已启动容器后端，先停止它以释放 8000 端口，再启动本机 API：
+
+```bash
+docker compose stop backend
+uvicorn app.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+前端开发服务在另一个终端运行。连接 Compose 的 Postgres 时，可参照 [.env.example](.env.example) 将 `DATABASE_URL` 设置为本机进程环境变量。
+
+CLI 复用同一套解析与提取管线：
+
+```bash
+python main.py report.pdf -o output.md                 # 解析并保存 Markdown
+python main.py report.pdf --extract -o card.json       # 提取并保存卡片 JSON
+python main.py report.pdf --extract --extract-raw      # 同时输出结构化字段
+python main.py report.pdf --stats                      # 查看文档解析统计
+python main.py report.pdf --extract --send --webhook "https://open.feishu.cn/open-apis/bot/v2/hook/your-token"
+```
+
+CLI 发送通过 `--webhook` 指定目标，Web 工作台发送使用数据库中的群配置。
+
+
+
+### 测试与评测
+
+```bash
+python -m pip install pytest
+python -m pytest tests/ --ignore=tests/test_mineru.py
+```
+
+单元测试覆盖任务持久化、确认发送、结果元信息、原文出处定位与字段评测。字段评测工具见 [app/extractor/eval.py](app/extractor/eval.py)，支持精确匹配、数值容差与文本包含比较。
 
 ## 项目结构
 
 ```text
-.
-├── README.md
-├── AGENTS.md
-├── requirements-api.txt
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-├── main.py                     # CLI 入口
-├── app/
-│   ├── api/                    # FastAPI 路由、schemas、依赖注入
-│   ├── cleaners/               # PDF 解析与多模态分解
-│   ├── extractor/              # LLM 字段提取引擎
-│   ├── feishu/                 # 飞书 Card v2 构建与 Webhook 客户端
-│   ├── services/               # TaskService、PipelineService、存储
-│   ├── pipeline.py             # CLI / API 共用编排
-│   └── config.py               # 环境变量与全局配置
-├── frontend/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── src/
-│       ├── api/                # 后端 API 客户端
-│       ├── pages/              # 上传、任务列表、详情、配置等页面
-│       ├── components/         # 字段编辑、卡片预览、布局组件
-│       └── types/              # 与 OpenAPI 对齐的 TypeScript 类型
-├── my_project/                 # MinerU 重依赖（uv / pyproject.toml）
-└── tests/                      # 单元测试
+app/
+├── api/              # FastAPI 路由、请求 / 响应模型与依赖
+├── cleaners/         # MinerU PDF 解析与图像内容分解
+├── extractor/        # 字段提取、出处定位、用量与评测
+├── feishu/           # Card v2 构建与 Webhook 客户端
+├── services/         # 任务、队列、存储与群配置业务
+├── db/               # 数据库模型与连接
+├── workers/          # Celery 任务执行入口
+└── pipeline.py       # CLI / API / Celery 共用管线
+frontend/             # React 工作台
+my_project/           # MinerU 等管线依赖
+tests/                # 单元测试
+scripts/              # 模型准备与并发验证辅助脚本
 ```
 
+**主要 API**
 
 
-## 后端能力（FastAPI）
+| 端点                                                                | 用途            |
+| ----------------------------------------------------------------- | ------------- |
+| `GET /health`                                                     | 健康检查          |
+| `POST /upload` · `POST /upload/batch`                             | 单份 / 批量上传     |
+| `GET /batches/{batch_id}`                                         | 批次进度          |
+| `GET /tasks` · `GET /tasks/{task_id}`                             | 历史搜索、筛选与状态轮询  |
+| `GET /tasks/{task_id}/content`                                    | 清洗后的 Markdown |
+| `GET /tasks/{task_id}/result`                                     | 结构化提取结果       |
+| `GET /tasks/{task_id}/file`                                       | 原始文件下载        |
+| `POST /tasks/{task_id}/confirm`                                   | 修改字段并确认发送     |
+| `GET /config/extraction-fields` · `PUT /config/extraction-fields` | 读取 / 保存字段模板配置 |
+| `POST /config/extraction-fields/reset`                            | 重置字段模板        |
+| `PUT /config/groups`                                              | 保存飞书群配置       |
 
-主要接口：
 
-- `GET /health`
-- `POST /upload`
-- `POST /upload/batch`
-- `GET /batches/{batch_id}`
-- `GET /tasks`
-- `GET /tasks/{task_id}`
-- `GET /tasks/{task_id}/content`
-- `GET /tasks/{task_id}/result`
-- `GET /tasks/{task_id}/file`
-- `POST /tasks/{task_id}/confirm`
-- `GET /config/extraction-fields`
-- `PUT /config/extraction-fields`
-- `POST /config/extraction-fields/reset`
-- `PUT /config/groups`
-
-后端职责：
-
-- 接收研报上传，创建异步解析 + 提取任务
-- 维护任务 / 批次状态，支持列表搜索与状态筛选
-- 返回清洗后 Markdown 与 15 字段 JSON 结果
-- 处理用户字段编辑与确认发送（Webhook 推送飞书 Card v2）
-- 管理提取字段模板与飞书群配置
-
-API 文档：[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-
-## 前端能力（React）
-
-前端工作台支持：
-
-- 总览：管线说明、任务统计、待审阅队列与 API 健康状态
-- 配置飞书目标群
-- 单文件 / 批量上传研报
-- 查看任务列表，按状态筛选与搜索
-- 轮询任务进度，查看清洗后 Markdown 原文
-- 编辑提取字段，定位原文出处，预览飞书卡片样式
-- 确认发送至目标群
-
-主要页面路由：
-
-- `/` — 总览（管线、待审阅队列、任务统计）
-- `/config/groups` — 群聊配置
-- `/upload` — 上传研报
-- `/tasks` — 任务列表
-- `/tasks/:id` — 任务详情（字段编辑 + 卡片预览 + 确认发送）
-- `/batches/:id` — 批量任务进度
-- `/settings` — 通用设置
+启动 API 后，可在 [/docs](http://127.0.0.1:8000/docs) 查看完整请求与响应定义。
 
 
 
-## 快速启动（推荐）
+## 数据与开发约定
 
-需已安装并启动 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
-
-```bash
-cp .env.example .env
-# 编辑 .env，填入 DASHSCOPE_API_KEY
-
-docker compose up -d
-```
-
-首次会构建 backend / frontend（较慢，Dockerfile 已配国内镜像源）；之后直接 `docker compose up -d` 即可。Compose 会注入 Postgres，无需再手写本机 `DATABASE_URL`。
-
-访问（Compose 里的前端是**构建产物**，改代码不会热更新）：
-
-- 前端（Docker 演示）：`http://localhost:8080`
-- 后端 / API 文档：`http://localhost:8000/docs`
-- 健康检查：`http://localhost:8000/health`
-
-改界面请走下面「本机开发」，用 Vite 热重载，不要反复 `docker compose build`。
-
-飞书机器人 Webhook 在前端「飞书通知」页配置并写入数据库，不走环境变量。
-
-
-| 变量                                  | 必填  | 默认值                                    | 说明                    |
-| ----------------------------------- | --- | -------------------------------------- | --------------------- |
-| `DASHSCOPE_API_KEY`                 | 是   | —                                      | 阿里云 DashScope API Key |
-| `POSTGRES_USER` / `PASSWORD` / `DB` | 否   | `extract` / `extract` / `extract_flow` | Compose 数据库账号         |
-| `PIPELINE_CONCURRENCY`              | 否   | `3`                                    | 并发处理任务数上限             |
-| `DECOMPOSER_ENABLED`                | 否   | `true`                                 | 是否启用多模态内容分解           |
-| `DECOMPOSER_BATCH_SIZE`             | 否   | `5`                                    | 分解批大小                 |
-
-
-常用命令：
-
-```bash
-docker compose ps          # 查看状态
-docker compose logs -f     # 看日志
-docker compose down        # 停止（数据卷保留）
-```
-
-
-
-## 本机开发（改代码用这个）
-
-Docker 只起数据库 / 缓存 / 后端；**前端用 Vite**，保存即刷新，不必重建镜像：
-
-```bash
-docker compose up -d postgres redis backend
-docker compose stop frontend   # 避免占用 5173
-
-cp .env.example .env   # 填 DASHSCOPE_API_KEY
-cd frontend && npm install && npm run dev -- --host 127.0.0.1 --port 5173
-```
-
-浏览器打开 `http://127.0.0.1:5173`。
-
-若还要热重载 Python API，可停掉 Compose 里的 backend，改用：
-
-```bash
-docker compose up -d postgres redis
-pip install -r requirements-api.txt
-cd my_project && pip install -e . && cd ..
-uvicorn app.api.main:app --reload --host 127.0.0.1 --port 8000
-cd frontend && npm run dev -- --host 127.0.0.1 --port 5173
-```
-
-
-
-### CLI 调试
-
-```bash
-python main.py report.pdf
-python main.py report.pdf --extract
-python main.py report.pdf --extract --send
-python main.py report.pdf -o output.md
-python main.py report.pdf --extract -o card.json
-python main.py report.pdf --stats
-```
-
-
-
-### 运行测试
-
-```bash
-python -m pytest tests/ --ignore=tests/test_mineru.py
-```
-
-更多开发约定见 [AGENTS.md](AGENTS.md)。
-
-## 本地忽略与数据目录
-
-以下路径由 `.gitignore` 排除，不会进入仓库：
-
-- `.env`（API Key 等密钥）
-- `data/`（上传文件与运行时数据；仓库仅保留 `data/.gitkeep`）
-- `frontend/node_modules/`、`frontend/dist/`
-- `.mineru_cache/`、`mineru_output/`、`.paddleocr_models/`
-
-Compose 全栈部署时通过 volume 挂载 `data/`，密钥用 `.env` 注入。
-
-## Roadmap
-
-- [ ] Celery Worker 纳入 Compose 编排（可选生产路径）
-- [ ] 群权限映射、发送审计与失败重发完善
+- 上传文件与运行数据位于 `data/`，Compose 通过目录挂载保留文件，Postgres 使用独立数据卷。
+- `.env`、本地数据库、模型缓存、前端依赖与构建产物由 [.gitignore](.gitignore) 排除。
+- 开发规范、服务分层与测试约定见 [AGENTS.md](AGENTS.md)；使用问题与建议可提交至 [Issues](https://github.com/cwj-66/Extract-Flow-agent/issues)。
