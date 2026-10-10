@@ -122,16 +122,16 @@ export function BatchDetailPage() {
           <div className="ef-card p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-2 text-muted">
                   <FolderOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="text-xs font-medium uppercase tracking-wider">
                     批量任务
                   </span>
                 </div>
-                <h2 className="mt-1 truncate text-lg font-semibold text-slate-900">
+                <h2 className="mt-1 truncate text-lg font-semibold text-ink">
                   {batch.name}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-muted">
                   共 {batch.total} 个文件 · 创建于{' '}
                   {formatRelativeTime(batch.created_at)}
                 </p>
@@ -146,13 +146,13 @@ export function BatchDetailPage() {
 
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="text-slate-600">整体进度</span>
-                <span className="font-medium text-slate-800">
+                <span className="text-muted">整体进度</span>
+                <span className="font-medium text-ink">
                   {completed}/{batch.total}（{progress}%）
                 </span>
               </div>
               <div
-                className="h-2 overflow-hidden rounded-full bg-slate-100"
+                className="h-2 overflow-hidden rounded-full bg-canvas"
                 role="progressbar"
                 aria-valuenow={progress}
                 aria-valuemin={0}
@@ -168,7 +168,7 @@ export function BatchDetailPage() {
 
             <div className="mt-4 flex flex-wrap gap-2 text-xs">
               {batch.counts.queued > 0 && (
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">
+                <span className="rounded-full bg-canvas px-2.5 py-1 text-ink">
                   排队 {batch.counts.queued}
                 </span>
               )}
@@ -210,9 +210,9 @@ export function BatchDetailPage() {
 
           <div className="ef-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
+              <table className="min-w-full divide-y divide-line">
                 <thead>
-                  <tr className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <tr className="bg-canvas text-left text-xs font-semibold uppercase tracking-wider text-muted">
                     <th className="px-4 py-3">文件</th>
                     <th className="px-4 py-3">公司</th>
                     <th className="px-4 py-3">状态</th>
@@ -220,28 +220,28 @@ export function BatchDetailPage() {
                     <th className="px-4 py-3">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line">
                   {batch.tasks.map((task) => (
                     <tr
                       key={task.id}
                       onClick={() => navigate(`/tasks/${task.id}`)}
-                      className="cursor-pointer transition hover:bg-slate-50"
+                      className="cursor-pointer transition hover:bg-canvas"
                     >
                       <td className="max-w-md px-4 py-3">
                         <span
-                          className="block truncate text-sm text-slate-700"
+                          className="block truncate text-sm text-ink"
                           title={task.relative_path ?? task.source_file}
                         >
                           {task.relative_path ?? task.source_file}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted">
                         {task.company_name ?? '—'}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <StatusBadge status={task.status} />
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
                         {formatRelativeTime(task.updated_at)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">

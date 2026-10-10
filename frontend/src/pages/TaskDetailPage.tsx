@@ -291,14 +291,14 @@ export function TaskDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h2 className="text-lg font-semibold tracking-tight text-ink">
+              <h1 className="text-lg font-semibold tracking-tight text-ink">
                 {task.company_name ?? '—'}
                 {task.stock_code && (
                   <span className="ml-1.5 text-sm font-normal text-muted">
                     · {task.stock_code}
                   </span>
                 )}
-              </h2>
+              </h1>
               <StatusBadge status={task.status} />
             </div>
             <p className="mt-1 text-xs text-subtle">
@@ -406,7 +406,7 @@ export function TaskDetailPage() {
               <>
                 {isProcessing ? (
                   <div>
-                    <div className="mb-3 rounded-lg border border-teal-100 bg-brand-soft px-3 py-2 text-sm text-brand">
+                    <div className="mb-3 rounded-lg border border-brand/20 bg-brand-soft px-3 py-2 text-sm text-brand">
                       {task.status === 'parsing' ? '版面解析中…' : '字段提取中…'}
                       状态会自动刷新
                     </div>

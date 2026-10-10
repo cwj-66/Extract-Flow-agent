@@ -30,7 +30,6 @@ import {
 } from '../lib/upload';
 import { PipelineStrip } from '../components/pipeline/PipelineStrip';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { PageHeader } from '../components/layout/PageHeader';
 import type { TaskSummary } from '../types';
 
 type UploadMode = 'single' | 'batch';
@@ -197,11 +196,6 @@ export function UploadPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="上传研报"
-        description="拖入研报 PDF，本地完成解析与分解，提取走 DashScope，确认后再推飞书卡片。"
-      />
-
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
       <div className="mb-4 inline-flex rounded-lg border border-line bg-surface p-0.5">
@@ -446,17 +440,17 @@ export function UploadPage() {
       {lastTaskId && mode === 'single' && (
         <div
           role="status"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          className="rounded-md border border-brand/20 bg-brand-soft px-4 py-3 text-sm text-ink"
         >
           上传成功，任务已创建
           <Link
             to={`/tasks/${lastTaskId}`}
-            className="ml-2 font-medium text-emerald-900 underline underline-offset-2"
+            className="ml-2 font-medium text-brand underline underline-offset-2"
           >
             查看任务详情
           </Link>
-          <span className="mx-1 text-emerald-600">·</span>
-          <Link to="/tasks" className="font-medium text-emerald-900 underline underline-offset-2">
+          <span className="mx-1 text-subtle">·</span>
+          <Link to="/tasks" className="font-medium text-brand underline underline-offset-2">
             任务队列
           </Link>
         </div>

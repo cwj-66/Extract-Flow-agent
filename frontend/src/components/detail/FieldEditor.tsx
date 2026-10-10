@@ -50,7 +50,7 @@ function LocateButton({
       disabled={!ok}
       title={ok ? '在原文中高亮出处' : '未找到原文出处'}
       aria-label={`${FIELD_LABELS[field] ?? field} 定位原文`}
-      className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-[#3370FF] hover:bg-[#E8F0FF] disabled:cursor-not-allowed disabled:text-slate-300"
+      className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-brand hover:bg-brand-soft disabled:cursor-not-allowed disabled:text-slate-300"
     >
       <MapPin className="h-3 w-3" aria-hidden="true" />
       原文
@@ -73,7 +73,7 @@ function FieldHead({
 }) {
   return (
     <div className="mb-1 flex items-center gap-1.5">
-      <span className={`text-xs font-medium ${selected ? 'text-[#3370FF]' : 'text-slate-600'}`}>
+      <span className={`text-xs font-medium ${selected ? 'text-brand' : 'text-muted'}`}>
         {FIELD_LABELS[field] ?? field}
       </span>
       <DiffBadge changed={changed} />
@@ -124,7 +124,7 @@ function MetricInputs({
   onChange: (pair: MetricPair) => void;
 }) {
   return (
-    <div className={`rounded-md px-1 py-1 ${selected ? 'bg-[#E8F0FF]/60' : ''}`}>
+    <div className={`rounded-md px-1 py-1 ${selected ? 'bg-brand-soft/60' : ''}`}>
       <FieldHead
         field={field}
         changed={!sameValue(pair, original)}
@@ -134,7 +134,7 @@ function MetricInputs({
       />
       <div className="grid grid-cols-2 gap-2">
         <input
-          className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+          className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
           value={pair.value}
           disabled={readOnly}
           placeholder="数值"
@@ -142,7 +142,7 @@ function MetricInputs({
           onChange={(e) => onChange({ ...pair, value: e.target.value })}
         />
         <input
-          className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+          className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
           value={pair.change}
           disabled={readOnly}
           placeholder="变动"
@@ -157,7 +157,7 @@ function MetricInputs({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-2 rounded-lg border border-[#DEE0E3] bg-white p-3">
+    <section className="space-y-2 rounded-lg border border-line bg-white p-3">
       <h3 className="text-sm font-semibold text-[#1F2329]">{title}</h3>
       {children}
     </section>
@@ -203,7 +203,7 @@ export function FieldEditor({
     });
   };
 
-  const inputClass = 'w-full rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50';
+  const inputClass = 'w-full rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas';
 
   const errorCount = issues.filter((item) => item.level === 'error').length;
 
@@ -227,14 +227,14 @@ export function FieldEditor({
           <button
             type="button"
             onClick={onDiscard}
-            className="rounded-md border border-[#DEE0E3] px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-line px-3 py-1.5 text-xs text-muted hover:bg-canvas"
           >
             放弃修改
           </button>
           <button
             type="button"
             onClick={() => onSave(fields)}
-            className="rounded-md bg-[#3370FF] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#245BDB]"
+            className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-hover"
           >
             保存修改
           </button>
@@ -244,7 +244,7 @@ export function FieldEditor({
       <Section title="基础信息">
         <div className="grid gap-3 sm:grid-cols-2">
           {(['company_name', 'stock_code', 'report_period', 'rating'] as const).map((key) => (
-            <label key={key} className={`block rounded-md px-1 py-1 ${selectedField === key ? 'bg-[#E8F0FF]/60' : ''}`}>
+            <label key={key} className={`block rounded-md px-1 py-1 ${selectedField === key ? 'bg-brand-soft/60' : ''}`}>
               <FieldHead
                 field={key}
                 changed={!sameValue(fields[key], originalFields[key])}
@@ -334,7 +334,7 @@ export function FieldEditor({
         <div className="mb-1 flex items-center gap-1.5">
           <DiffBadge changed={!sameValue(fields.business_segments, originalFields.business_segments)} />
         </div>
-        <div className="mb-1 grid grid-cols-[1fr_1fr_1fr_2rem] gap-2 text-[11px] text-slate-400">
+        <div className="mb-1 grid grid-cols-[1fr_1fr_1fr_2rem] gap-2 text-[11px] text-subtle">
           <span>业务</span>
           <span>收入/规模</span>
           <span>增速</span>
@@ -344,19 +344,19 @@ export function FieldEditor({
           {fields.business_segments.map((seg, index) => (
             <div key={index} className="grid grid-cols-[1fr_1fr_1fr_2rem] items-center gap-2">
               <input
-                className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+                className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
                 value={seg.name}
                 disabled={readOnly}
                 onChange={(e) => updateSegment(index, { ...seg, name: e.target.value })}
               />
               <input
-                className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+                className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
                 value={seg.value}
                 disabled={readOnly}
                 onChange={(e) => updateSegment(index, { ...seg, value: e.target.value })}
               />
               <input
-                className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+                className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
                 value={seg.growth}
                 disabled={readOnly}
                 onChange={(e) => updateSegment(index, { ...seg, growth: e.target.value })}
@@ -366,7 +366,7 @@ export function FieldEditor({
                   type="button"
                   aria-label="删除行"
                   onClick={() => removeSegment(index)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-subtle hover:bg-red-50 hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -378,7 +378,7 @@ export function FieldEditor({
           <button
             type="button"
             onClick={addSegment}
-            className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:border-[#3370FF] hover:text-[#3370FF]"
+            className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed border-line px-3 py-1.5 text-xs text-muted hover:border-brand hover:text-brand"
           >
             <Plus className="h-3.5 w-3.5" />
             添加业务板块
@@ -388,7 +388,7 @@ export function FieldEditor({
 
       <Section title="盈利预测（百万元）">
         <DiffBadge changed={!sameValue(fields.profit_forecast, originalFields.profit_forecast)} />
-        <div className="mb-1 grid grid-cols-3 gap-2 text-[11px] text-slate-400">
+        <div className="mb-1 grid grid-cols-3 gap-2 text-[11px] text-subtle">
           <span>年份</span>
           <span>营业收入</span>
           <span>净利润</span>
@@ -397,19 +397,19 @@ export function FieldEditor({
           {fields.profit_forecast.map((row, index) => (
             <div key={index} className="grid grid-cols-3 gap-2">
               <input
-                className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+                className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
                 value={row.year}
                 disabled={readOnly}
                 onChange={(e) => updateForecast(index, { ...row, year: e.target.value })}
               />
               <input
-                className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+                className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
                 value={row.revenue}
                 disabled={readOnly}
                 onChange={(e) => updateForecast(index, { ...row, revenue: e.target.value })}
               />
               <input
-                className="rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50"
+                className="rounded-md border border-line px-2.5 py-1.5 text-sm disabled:bg-canvas"
                 value={row.net_profit}
                 disabled={readOnly}
                 onChange={(e) => updateForecast(index, { ...row, net_profit: e.target.value })}
@@ -420,7 +420,7 @@ export function FieldEditor({
       </Section>
 
       <Section title="观点与风险">
-        <label className={`block rounded-md px-1 ${selectedField === 'core_view' ? 'bg-[#E8F0FF]/60' : ''}`}>
+        <label className={`block rounded-md px-1 ${selectedField === 'core_view' ? 'bg-brand-soft/60' : ''}`}>
           <FieldHead
             field="core_view"
             changed={!sameValue(fields.core_view, originalFields.core_view)}
@@ -437,7 +437,7 @@ export function FieldEditor({
           />
           <IssueNotes items={notesFor(issues, 'core_view')} />
         </label>
-        <label className={`mt-3 block rounded-md px-1 ${selectedField === 'risks' ? 'bg-[#E8F0FF]/60' : ''}`}>
+        <label className={`mt-3 block rounded-md px-1 ${selectedField === 'risks' ? 'bg-brand-soft/60' : ''}`}>
           <FieldHead
             field="risks"
             changed={!sameValue(fields.risks, originalFields.risks)}

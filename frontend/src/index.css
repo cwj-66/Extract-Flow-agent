@@ -2,29 +2,23 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-brand: #3370ff;
-  --color-brand-hover: #245bdb;
-  --color-brand-soft: #edf2ff;
-  --color-ink: #18181b;
-  --color-muted: #52525b;
-  --color-subtle: #a1a1aa;
-  --color-line: #e4e4e7;
-  --color-canvas: #f4f4f5;
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-soft: #eff4ff;
+  --color-ink: #111111;
+  --color-muted: #525252;
+  --color-subtle: #a3a3a3;
+  --color-line: #e5e5e5;
+  --color-canvas: #f5f5f5;
   --color-surface: #ffffff;
-  --color-sidebar: #111113;
+  --color-sidebar: #111111;
   --color-sidebar-fg: #fafafa;
-  --color-sidebar-muted: #a1a1aa;
-  --color-sidebar-hover: #1c1c1f;
-  --color-sidebar-active: #27272a;
+  --color-sidebar-muted: #a3a3a3;
+  --color-sidebar-hover: #1c1c1c;
+  --color-sidebar-active: #262626;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-danger: #dc2626;
-  --color-teal-50: #edf2ff;
-  --color-teal-100: #c2d6ff;
-  --color-teal-400: #6aa1ff;
-  --color-teal-500: #3370ff;
-  --color-teal-600: #3370ff;
-  --color-teal-700: #245bdb;
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Inter, "Helvetica Neue", Arial, sans-serif;
   --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 8px 24px rgb(24 24 27 / 0.04);
 }
@@ -65,7 +59,7 @@
   }
 
   .ef-card-hover:hover {
-    border-color: #c2d6ff;
+    border-color: #bfdbfe;
     box-shadow: var(--shadow-card);
   }
 
@@ -159,6 +153,6 @@
   .ef-input:focus {
     outline: none;
     border-color: var(--color-brand);
-    box-shadow: 0 0 0 3px rgba(51, 112, 255, 0.15);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.15);
   }
 }

@@ -9,7 +9,6 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { TableSkeleton } from '../components/ui/LoadingSkeleton';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { PageHeader } from '../components/layout/PageHeader';
 import { formatRelativeTime } from '../lib/status';
 import type { TaskStatus, TaskSummary } from '../types';
 
@@ -154,32 +153,25 @@ export function TaskListPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="任务队列"
-        description="按公司、文件名或状态查找，点进详情审阅字段后再发飞书。"
-        action={
-          <button
-            onClick={() => navigate('/upload')}
-            className="ef-btn ef-btn-primary"
-          >
-            <UploadCloud className="h-4 w-4" aria-hidden="true" />
-            上传研报
-          </button>
-        }
-      />
-      <div className="relative min-w-52">
-        <Search
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          aria-label="搜索任务"
-          placeholder="搜索公司名称或文件名"
-          value={query}
-          onChange={(e) => handleQueryChange(e.target.value)}
-          className="ef-input pl-9"
-        />
+      <div className="ef-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            aria-label="搜索任务"
+            placeholder="搜索公司名称或文件名"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            className="ef-input pl-9"
+          />
+        </div>
+        <button type="button" onClick={() => navigate('/upload')} className="ef-btn ef-btn-primary shrink-0">
+          <UploadCloud className="h-4 w-4" aria-hidden="true" />
+          上传研报
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="按状态筛选">
@@ -190,7 +182,7 @@ export function TaskListPage() {
             role="tab"
             aria-selected={statusFilter === o.value}
             onClick={() => handleStatusChange(o.value)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
               statusFilter === o.value
                 ? 'bg-brand text-white'
                 : 'bg-surface text-muted ring-1 ring-line hover:text-ink'
@@ -225,56 +217,81 @@ export function TaskListPage() {
           />
         ) : (
           <>
-            <ul className="divide-y divide-line">
-              {items.map((task) => (
-                <li key={task.id} className="flex items-stretch hover:bg-canvas">
-                  <Link
-                    to={`/tasks/${task.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-4 px-5 py-3.5"
-                    aria-label={`查看详情 ${task.company_name ?? task.source_file}`}
-                  >
-                    <div className="ef-icon-tile bg-brand-soft text-brand">
-                      <FileText className="h-4 w-4" aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink">
-                        {task.company_name ?? task.relative_path ?? task.source_file}
-                        {task.stock_code ? (
-                          <span className="ml-1.5 font-normal tabular-nums text-muted">
-                            {task.stock_code}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-subtle" title={task.relative_path ?? task.source_file}>
-                        {task.relative_path ?? task.source_file}
-                        <span className="mx-1.5">·</span>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead className="border-b border-line text-[11px] font-medium text-subtle">
+                  <tr>
+                    <th className="px-4 py-2.5 font-medium">研报</th>
+                    <th className="px-4 py-2.5 font-medium">状态</th>
+                    <th className="px-4 py-2.5 font-medium">更新</th>
+                    <th className="px-4 py-2.5 text-right font-medium">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((task) => (
+                    <tr key={task.id} className="border-b border-line last:border-0 hover:bg-canvas">
+                      <td className="px-4 py-3">
+                        <Link
+                          to={`/tasks/${task.id}`}
+                          className="flex min-w-0 items-center gap-3"
+                          aria-label={`查看详情 ${task.company_name ?? task.source_file}`}
+                        >
+                          <div className="ef-icon-tile bg-brand-soft text-brand">
+                            <FileText className="h-4 w-4" aria-hidden="true" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-ink">
+                              {task.company_name ?? task.relative_path ?? task.source_file}
+                              {task.stock_code ? (
+                                <span className="ml-1.5 font-normal tabular-nums text-muted">
+                                  {task.stock_code}
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-subtle" title={task.relative_path ?? task.source_file}>
+                              {task.relative_path ?? task.source_file}
+                            </p>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <StatusBadge status={task.status} />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-subtle">
                         {formatRelativeTime(task.updated_at)}
-                      </p>
-                    </div>
-                    <StatusBadge status={task.status} />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-subtle" aria-hidden="true" />
-                  </Link>
-                  <div className="flex shrink-0 items-center gap-1 pr-4">
-                    {task.batch_id && (
-                      <Link
-                        to={`/batches/${task.batch_id}`}
-                        className="rounded-md px-2 py-1 text-xs text-brand hover:bg-brand-soft"
-                      >
-                        批次
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(task)}
-                      className="inline-flex items-center rounded-md p-1.5 text-subtle hover:bg-red-50 hover:text-red-500"
-                      aria-label={`删除 ${task.company_name ?? task.source_file}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {task.batch_id ? (
+                            <Link
+                              to={`/batches/${task.batch_id}`}
+                              className="rounded-md px-2 py-1 text-xs text-brand hover:bg-brand-soft"
+                            >
+                              批次
+                            </Link>
+                          ) : null}
+                          <Link
+                            to={`/tasks/${task.id}`}
+                            className="inline-flex items-center rounded-md px-2 py-1 text-xs text-muted hover:bg-canvas hover:text-ink"
+                          >
+                            打开
+                            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(task)}
+                            className="inline-flex items-center rounded-md p-1.5 text-subtle hover:bg-red-50 hover:text-red-500"
+                            aria-label={`删除 ${task.company_name ?? task.source_file}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-2.5">
               <p className="text-xs text-subtle">

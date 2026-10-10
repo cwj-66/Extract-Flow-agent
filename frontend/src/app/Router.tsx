@@ -3,6 +3,7 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { BatchDetailPage } from '../pages/BatchDetailPage';
 import { FeishuGroupsPage } from '../pages/FeishuGroupsPage';
 import { OverviewPage } from '../pages/OverviewPage';
+import { PipelinePage } from '../pages/PipelinePage';
 import { UploadPage } from '../pages/UploadPage';
 import { TaskListPage } from '../pages/TaskListPage';
 import { TaskDetailPage } from '../pages/TaskDetailPage';
@@ -16,6 +17,7 @@ const router = createBrowserRouter([
       { index: true, element: <OverviewPage /> },
       { path: 'config/groups', element: <FeishuGroupsPage /> },
       { path: 'upload', element: <UploadPage /> },
+      { path: 'pipeline', element: <PipelinePage /> },
       { path: 'batches/:id', element: <BatchDetailPage /> },
       { path: 'tasks', element: <TaskListPage /> },
       { path: 'tasks/:id', element: <TaskDetailPage /> },

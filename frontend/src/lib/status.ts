@@ -16,6 +16,20 @@ export const STATUS_META: Record<TaskStatus, StatusMeta> = {
   failed: { label: '失败', color: 'red', spinning: false },
 };
 
+export const PIPELINE_STAGES: { status: Exclude<TaskStatus, 'failed'>; label: string }[] = [
+  { status: 'queued', label: '排队' },
+  { status: 'parsing', label: '解析' },
+  { status: 'extracting', label: '提取' },
+  { status: 'pending_confirm', label: '待确认' },
+  { status: 'sending', label: '发送' },
+  { status: 'sent', label: '已发送' },
+];
+
+export function pipelineStageIndex(status: TaskStatus): number {
+  if (status === 'failed') return -1;
+  return PIPELINE_STAGES.findIndex((stage) => stage.status === status);
+}
+
 export function formatRelativeTime(dateStr: string): string {
   // 后端偶发返回无时区 ISO（UTC）；补 Z，避免被当成本地时间偏 8 小时
   const normalized =
