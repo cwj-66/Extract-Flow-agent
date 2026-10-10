@@ -8,6 +8,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from app.extractor.schemas import ExtractionMetrics, ExtractionResult, FieldEvidence
+from app.extractor.validation import ValidationIssue, ValidationStatus
 
 
 class TaskStatus(str, Enum):
@@ -109,6 +110,11 @@ class TaskResultResponse(BaseModel):
     metrics: ExtractionMetrics | None = Field(
         default=None,
         description="本次 LLM 提取的 token / 耗时 / 估算成本",
+    )
+    validation_status: ValidationStatus = ValidationStatus.VALID
+    issues: list[ValidationIssue] = Field(
+        default_factory=list,
+        description="缺失、格式或单位问题，不阻止确认发送",
     )
     extracted_at: datetime | None = None
 

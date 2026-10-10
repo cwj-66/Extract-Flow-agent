@@ -1,0 +1,32 @@
+# 迁入代码的来源清单。再同步时按 sha 取上游，保留本地改过的文件。
+grafts:
+  - name: demo-seed
+    source: SAHARIARSHOWMIK/ai-document-processing-automation
+    sha: ddb4085
+    target: app/services/
+    files:
+      - app/services/demo_documents.py → app/services/demo_reports.py
+      - app/services/demo_seed.py → app/services/demo_seed.py
+    trimmed:
+      - invoice/receipt/purchase_order/contract sample texts
+      - Document ORM, is_demo column, audit log_event
+      - POST /demo/bootstrap approval and export path
+    notes: >
+      MIT, Copyright (c) 2026 Your Name. Seed becomes pending_confirm
+      research-report tasks with precomputed fields. No model call.
+  - name: report-validation
+    source: SAHARIARSHOWMIK/ai-document-processing-automation
+    sha: ddb4085
+    target: app/extractor/validation.py
+    files:
+      - app/models.py ValidationLevel, ValidationStatus → app/extractor/validation.py
+      - app/schemas/__init__.py ValidationIssue → app/extractor/validation.py
+      - app/services/validation_engine.py → app/extractor/validation.py
+    trimmed:
+      - invoice, receipt, purchase order, and contract validators
+      - duplicate lookup against other documents
+      - confidence threshold and REQUIRES_REVIEW
+      - audit log and document status change
+    notes: >
+      MIT, Copyright (c) 2026 Your Name. Issues are computed on read
+      for research-report fields. They do not block confirm.

@@ -28,6 +28,7 @@ from app.db.models import SendLogRow
 from app.db.session import get_session_factory
 from app.extractor.meta import attach_meta, split_meta
 from app.extractor.schemas import ExtractionMeta, ExtractionResult
+from app.extractor.validation import check_report
 from app.feishu.card_builder import build_report_card
 from app.feishu.client import FeishuClient
 from app.services.exceptions import (
@@ -139,6 +140,12 @@ class TaskService:
             rejected=rejected,
         )
 
+    def seed_demo(self) -> list[TaskSummary]:
+        """写入预计算样例任务，不入解析队列。"""
+        from app.services.demo_seed import seed_demo_tasks
+
+        return [self._to_summary(record) for record in seed_demo_tasks(self._store)]
+
     def get_batch(self, batch_id: str) -> BatchResponse:
         batch = self._store.get_batch(batch_id)
         if batch is None:
@@ -198,13 +205,17 @@ class TaskService:
             raise TaskStateError(task_id, "提取结果尚未就绪")
         fields_dict, meta_dict = split_meta(record.extraction)
         meta = ExtractionMeta.model_validate(meta_dict) if meta_dict else ExtractionMeta()
+        fields = ExtractionResult.model_validate(fields_dict)
+        validation_status, issues = check_report(fields, record.parsed_markdown or "")
         return TaskResultResponse(
             task_id=record.id,
             status=record.status,
             source_file=record.source_file,
-            fields=ExtractionResult.model_validate(fields_dict),
+            fields=fields,
             evidence=meta.evidence,
             metrics=meta.metrics,
+            validation_status=validation_status,
+            issues=issues,
             extracted_at=record.extracted_at,
         )
 

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.deps import get_task_queue
-from app.api.routers import batches, config, health, tasks, upload
+from app.api.routers import batches, config, demo, health, tasks, upload
 from app.db import init_db
 
 
@@ -46,6 +46,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(demo.router)
 app.include_router(upload.router)
 app.include_router(batches.router)
 app.include_router(tasks.router)

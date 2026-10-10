@@ -60,6 +60,10 @@ export function getBatch(batchId: string): Promise<BatchResponse> {
   return apiRequest<BatchResponse>(`/batches/${encodeURIComponent(batchId)}`);
 }
 
+export function seedDemo(): Promise<TaskSummary[]> {
+  return apiRequest<TaskSummary[]>('/demo/seed', { method: 'POST' });
+}
+
 export function listTasks(params: ListTasksParams = {}): Promise<TaskListResponse> {
   const search = new URLSearchParams();
   if (params.q) search.set('q', params.q);

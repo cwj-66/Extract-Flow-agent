@@ -118,6 +118,17 @@ export interface ExtractionMetrics {
   retries: number;
 }
 
+export type ValidationLevel = 'error' | 'warning' | 'info';
+
+export type ValidationStatus = 'valid' | 'warning' | 'failed';
+
+export interface FieldIssue {
+  level: ValidationLevel;
+  rule: string;
+  field: string | null;
+  message: string;
+}
+
 export interface TaskResultResponse {
   task_id: string;
   status: TaskStatus;
@@ -125,6 +136,8 @@ export interface TaskResultResponse {
   fields: ExtractionFields;
   evidence: FieldEvidence[];
   metrics: ExtractionMetrics | null;
+  validation_status: ValidationStatus;
+  issues: FieldIssue[];
   extracted_at: string | null;
 }
 

@@ -4,6 +4,7 @@ import type {
   BusinessSegment,
   ExtractionFields,
   FieldEvidence,
+  FieldIssue,
   MetricPair,
   ProfitForecastRow,
 } from '../../types';
@@ -20,6 +21,7 @@ interface FieldEditorProps {
   selectedField?: string | null;
   onSelectField?: (field: string) => void;
   evidenceByField?: Record<string, FieldEvidence>;
+  issues?: FieldIssue[];
 }
 
 function DiffBadge({ changed }: { changed: boolean }) {
@@ -80,6 +82,26 @@ function FieldHead({
   );
 }
 
+function IssueNotes({ items }: { items: FieldIssue[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="mt-1 space-y-0.5">
+      {items.map((item) => (
+        <li
+          key={`${item.rule}-${item.message}`}
+          className={`text-[11px] leading-4 ${item.level === 'error' ? 'text-red-600' : 'text-amber-700'}`}
+        >
+          {item.message}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function notesFor(issues: FieldIssue[], field: string): FieldIssue[] {
+  return issues.filter((item) => item.field === field);
+}
+
 function MetricInputs({
   field,
   pair,
@@ -87,6 +109,7 @@ function MetricInputs({
   readOnly,
   selected,
   evidence,
+  notes,
   onSelect,
   onChange,
 }: {
@@ -96,6 +119,7 @@ function MetricInputs({
   readOnly?: boolean;
   selected: boolean;
   evidence?: FieldEvidence;
+  notes: FieldIssue[];
   onSelect?: (field: string) => void;
   onChange: (pair: MetricPair) => void;
 }) {
@@ -126,6 +150,7 @@ function MetricInputs({
           onChange={(e) => onChange({ ...pair, change: e.target.value })}
         />
       </div>
+      <IssueNotes items={notes} />
     </div>
   );
 }
@@ -150,6 +175,7 @@ export function FieldEditor({
   selectedField,
   onSelectField,
   evidenceByField = {},
+  issues = [],
 }: FieldEditorProps) {
   const patch = (partial: Partial<ExtractionFields>) => onChange({ ...fields, ...partial });
 
@@ -179,8 +205,23 @@ export function FieldEditor({
 
   const inputClass = 'w-full rounded-md border border-[#DEE0E3] px-2.5 py-1.5 text-sm disabled:bg-slate-50';
 
+  const errorCount = issues.filter((item) => item.level === 'error').length;
+
   return (
     <div className="space-y-3">
+      {issues.length > 0 && (
+        <p
+          className={`rounded-md border px-3 py-2 text-xs ${
+            errorCount > 0
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}
+        >
+          {errorCount > 0
+            ? `${issues.length} 项需要核对，其中 ${errorCount} 项缺失`
+            : `${issues.length} 项需要核对`}
+        </p>
+      )}
       {!readOnly && dirty && (
         <div className="flex items-center justify-end gap-2">
           <button
@@ -218,6 +259,7 @@ export function FieldEditor({
                 onFocus={() => onSelectField?.(key)}
                 onChange={(e) => patch({ [key]: e.target.value })}
               />
+              <IssueNotes items={notesFor(issues, key)} />
             </label>
           ))}
         </div>
@@ -232,6 +274,7 @@ export function FieldEditor({
             readOnly={readOnly}
             selected={selectedField === 'revenue'}
             evidence={evidenceByField.revenue}
+            notes={notesFor(issues, 'revenue')}
             onSelect={onSelectField}
             onChange={(revenue) => patch({ revenue })}
           />
@@ -242,6 +285,7 @@ export function FieldEditor({
             readOnly={readOnly}
             selected={selectedField === 'net_profit'}
             evidence={evidenceByField.net_profit}
+            notes={notesFor(issues, 'net_profit')}
             onSelect={onSelectField}
             onChange={(net_profit) => patch({ net_profit })}
           />
@@ -252,6 +296,7 @@ export function FieldEditor({
             readOnly={readOnly}
             selected={selectedField === 'roe'}
             evidence={evidenceByField.roe}
+            notes={notesFor(issues, 'roe')}
             onSelect={onSelectField}
             onChange={(roe) => patch({ roe })}
           />
@@ -267,6 +312,7 @@ export function FieldEditor({
             readOnly={readOnly}
             selected={selectedField === 'total_assets'}
             evidence={evidenceByField.total_assets}
+            notes={notesFor(issues, 'total_assets')}
             onSelect={onSelectField}
             onChange={(total_assets) => patch({ total_assets })}
           />
@@ -277,6 +323,7 @@ export function FieldEditor({
             readOnly={readOnly}
             selected={selectedField === 'net_assets'}
             evidence={evidenceByField.net_assets}
+            notes={notesFor(issues, 'net_assets')}
             onSelect={onSelectField}
             onChange={(net_assets) => patch({ net_assets })}
           />
@@ -388,6 +435,7 @@ export function FieldEditor({
             onFocus={() => onSelectField?.('core_view')}
             onChange={(e) => patch({ core_view: e.target.value })}
           />
+          <IssueNotes items={notesFor(issues, 'core_view')} />
         </label>
         <label className={`mt-3 block rounded-md px-1 ${selectedField === 'risks' ? 'bg-[#E8F0FF]/60' : ''}`}>
           <FieldHead
@@ -404,6 +452,7 @@ export function FieldEditor({
             onFocus={() => onSelectField?.('risks')}
             onChange={(e) => patch({ risks: e.target.value })}
           />
+          <IssueNotes items={notesFor(issues, 'risks')} />
         </label>
       </Section>
     </div>

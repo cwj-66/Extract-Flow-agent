@@ -21,11 +21,12 @@ import { MetricsBar } from '../components/detail/MetricsBar';
 import { FieldSkeleton } from '../components/ui/LoadingSkeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { formatRelativeTime } from '../lib/status';
-import { mergeEvidence } from '../lib/fields';
+import { mergeEvidence, sameValue } from '../lib/fields';
 import type {
   ExtractionFields,
   ExtractionMetrics,
   FieldEvidence,
+  FieldIssue,
   TaskStatus,
   TaskSummary,
 } from '../types';
@@ -57,6 +58,7 @@ export function TaskDetailPage() {
   const [originalFields, setOriginalFields] = useState<ExtractionFields | undefined>();
   const [localFields, setLocalFields] = useState<ExtractionFields | undefined>();
   const [evidence, setEvidence] = useState<FieldEvidence[]>([]);
+  const [issues, setIssues] = useState<FieldIssue[]>([]);
   const [metrics, setMetrics] = useState<ExtractionMetrics | null>(null);
   const [markdown, setMarkdown] = useState('');
   const [markdownCharCount, setMarkdownCharCount] = useState(0);
@@ -126,6 +128,7 @@ export function TaskDetailPage() {
           resultLoadedRef.current = true;
         }
         setEvidence(result.evidence ?? []);
+        setIssues(result.issues ?? []);
         setMetrics(result.metrics);
         if (!dirtyRef.current) setLocalFields(result.fields);
       } catch (err) {
@@ -421,6 +424,16 @@ export function TaskDetailPage() {
                     selectedField={selectedField}
                     onSelectField={setSelectedField}
                     evidenceByField={byField}
+                    issues={
+                      fields && originalFields
+                        ? issues.filter((item) => {
+                            if (!item.field) return true;
+                            const key = item.field as keyof ExtractionFields;
+                            if (!(key in originalFields)) return true;
+                            return sameValue(fields[key], originalFields[key]);
+                          })
+                        : issues
+                    }
                   />
                 ) : (
                   <div className="rounded-xl border border-line bg-surface px-6 py-12 text-center text-sm text-subtle">

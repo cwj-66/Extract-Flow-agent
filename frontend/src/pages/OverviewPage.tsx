@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   Sparkles,
 } from 'lucide-react';
-import { listTasks } from '../api/tasks';
+import { listTasks, seedDemo } from '../api/tasks';
 import { fetchHealth, type HealthResponse } from '../api/health';
 import { ApiError } from '../api/client';
 import { PipelineStrip } from '../components/pipeline/PipelineStrip';
@@ -82,6 +82,26 @@ export function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [seeding, setSeeding] = useState(false);
+  const [seedNote, setSeedNote] = useState<string | null>(null);
+
+  const loadSamples = async () => {
+    setSeeding(true);
+    setSeedNote(null);
+    try {
+      const created = await seedDemo();
+      setSeedNote(
+        created.length > 0
+          ? `已载入 ${created.length} 份样例，可直接打开审阅`
+          : '样例已在任务列表中'
+      );
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '载入样例失败');
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -199,12 +219,26 @@ export function OverviewPage() {
                 ? `API ${health.queue === 'celery' ? 'Celery' : '进程内队列'}`
                 : 'API 异常'}
           </span>
+          <button
+            type="button"
+            className="ef-btn ef-btn-secondary px-4 py-2"
+            onClick={() => void loadSamples()}
+            disabled={seeding}
+          >
+            {seeding ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            )}
+            载入样例
+          </button>
           <Link to="/upload" className="ef-btn ef-btn-primary px-4 py-2">
             <UploadCloud className="h-4 w-4" aria-hidden="true" />
             上传研报
           </Link>
         </div>
       </section>
+      {seedNote ? <p className="text-sm text-muted">{seedNote}</p> : null}
 
       {error && !loading ? (
         <div className="ef-card">
@@ -282,10 +316,20 @@ export function OverviewPage() {
           ) : queue.length === 0 ? (
             <div className="px-5 py-12 text-center">
               <p className="text-sm font-medium text-ink">暂无待确认任务</p>
-              <p className="mt-1 text-xs text-subtle">上传研报后，提取完成会出现在这里</p>
-              <Link to="/upload" className="ef-btn ef-btn-primary mt-5">
-                去上传
-              </Link>
+              <p className="mt-1 text-xs text-subtle">载入样例即可审阅，不必等待模型</p>
+              <div className="mt-5 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="ef-btn ef-btn-secondary"
+                  onClick={() => void loadSamples()}
+                  disabled={seeding}
+                >
+                  载入样例
+                </button>
+                <Link to="/upload" className="ef-btn ef-btn-primary">
+                  去上传
+                </Link>
+              </div>
             </div>
           ) : (
             <ul className="divide-y divide-line">
