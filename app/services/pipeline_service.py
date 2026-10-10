@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from app.api.schemas.task import TaskStatus
+from app.services.audit import log_event
 from app.services.store import TaskStore
 
 logger = logging.getLogger(__name__)
@@ -42,12 +43,18 @@ class PipelineService:
             record.extracted_at = record.updated_at
             record.touch(status=TaskStatus.PENDING_CONFIRM)
             self._store.save(record)
+            self._audit("fields_extracted", "字段提取完成", task_id=task_id)
             logger.info("任务 %s 提取完成", task_id)
 
         except Exception as exc:
             logger.exception("任务 %s 管线失败", task_id)
+            stage = record.status
             record.touch(status=TaskStatus.FAILED, error=str(exc))
             self._store.save(record)
+            if stage == TaskStatus.PARSING:
+                self._audit("parse_failed", f"解析失败: {exc}", task_id=task_id)
+            else:
+                self._audit("extraction_failed", f"提取失败: {exc}", task_id=task_id)
 
     def _parse(self, file_path: Path) -> str:
         ext = file_path.suffix.lower()
@@ -63,3 +70,15 @@ class PipelineService:
 
         bundle = extract_document(markdown)
         return attach_meta(bundle.result.model_dump(), bundle.meta.model_dump())
+
+    def _audit(self, event_type: str, message: str, *, task_id: str) -> None:
+        from app.db.session import get_session_factory
+
+        factory = getattr(self._store, "_session_factory", None) or get_session_factory()
+        log_event(
+            event_type,
+            message,
+            task_id=task_id,
+            actor="system",
+            session_factory=factory,
+        )

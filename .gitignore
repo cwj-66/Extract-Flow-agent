@@ -10,6 +10,7 @@ build/
 
 # Tests / coverage
 .pytest_cache/
+.pytest-tmp/
 .coverage
 htmlcov/
 .mypy_cache/

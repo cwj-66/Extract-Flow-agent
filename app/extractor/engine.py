@@ -21,7 +21,6 @@ from app.extractor.schemas import (
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MODEL = "qwen3.7-plus"
 _REPAIR_PROMPT = "上一次输出不是合法 JSON。请只输出 JSON 对象，不要 Markdown 代码块。"
 
 
@@ -50,13 +49,16 @@ def _estimate_cny(prompt_tokens: int, completion_tokens: int) -> float:
 def extract_document(
     markdown: str,
     *,
-    model: str = _DEFAULT_MODEL,
+    model: str | None = None,
     show_raw: bool = False,
 ) -> ExtractedDocument:
     """提取字段，并回填原文出处与 token 用量。"""
+    model = model or settings.DASHSCOPE_MODEL
     client = OpenAI(
         api_key=settings.DASHSCOPE_API_KEY,
         base_url=settings.DASHSCOPE_BASE_URL,
+        timeout=settings.LLM_REQUEST_TIMEOUT_SEC,
+        max_retries=settings.LLM_MAX_RETRIES,
     )
     messages: list[dict[str, str]] = [
         {"role": "user", "content": build_extraction_prompt(markdown)},
@@ -125,7 +127,7 @@ def extract_document(
 def extract_fields(
     markdown: str,
     *,
-    model: str = _DEFAULT_MODEL,
+    model: str | None = None,
     show_raw: bool = False,
 ) -> ExtractionResult:
     """从结构化 Markdown 中提取固定研报字段。"""

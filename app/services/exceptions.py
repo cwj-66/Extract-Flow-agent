@@ -26,3 +26,12 @@ class BatchNotFoundError(Exception):
     def __init__(self, batch_id: str) -> None:
         self.batch_id = batch_id
         super().__init__(f"batch not found: {batch_id}")
+
+
+class QueueCapacityError(Exception):
+    """处理容量已满；提示调用方稍后重试，不创建上传任务。"""
+
+    def __init__(self, message: str = "处理队列已满，请稍后重试", retry_after: int = 30) -> None:
+        self.message = message
+        self.retry_after = retry_after
+        super().__init__(message)

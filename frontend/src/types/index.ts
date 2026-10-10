@@ -178,6 +178,42 @@ export interface GeneralSettings {
   userId: string;
 }
 
+export interface AuditEvent {
+  id: string;
+  task_id: string | null;
+  event_type: string;
+  message: string;
+  details: Record<string, unknown> | null;
+  actor: string;
+  created_at: string;
+}
+
+export interface DashboardOverview {
+  total: number;
+  pending_confirm: number;
+  processing: number;
+  sent: number;
+  failed: number;
+  by_status: Record<TaskStatus, number>;
+  validation: Record<'valid' | 'warning' | 'failed', number>;
+  avg_elapsed_ms: number | null;
+  total_estimated_cny: number;
+  edited_send_count: number;
+  sent_with_log_count: number;
+  edit_rate: number | null;
+  review_queue: TaskSummary[];
+  recent_tasks: TaskSummary[];
+  recent_events: AuditEvent[];
+}
+
+export interface ExportRecord {
+  id: string;
+  export_type: 'csv' | 'json' | string;
+  task_count: number;
+  created_at: string;
+  download_url: string;
+}
+
 export function emptyMetric(): MetricPair {
   return { value: '无', change: '' };
 }

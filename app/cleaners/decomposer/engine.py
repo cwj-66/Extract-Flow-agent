@@ -102,6 +102,8 @@ def _process_single_image(ref: ImageRef) -> DecompositionResult:
     client = OpenAI(
         api_key=settings.DASHSCOPE_API_KEY,
         base_url=settings.DASHSCOPE_BASE_URL,
+        timeout=settings.LLM_REQUEST_TIMEOUT_SEC,
+        max_retries=settings.LLM_MAX_RETRIES,
     )
 
     if ref.resolved_path is None or not ref.resolved_path.exists():

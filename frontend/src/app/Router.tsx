@@ -3,6 +3,8 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { BatchDetailPage } from '../pages/BatchDetailPage';
 import { FeishuGroupsPage } from '../pages/FeishuGroupsPage';
 import { OverviewPage } from '../pages/OverviewPage';
+import { AuditPage } from '../pages/AuditPage';
+import { ExportsPage } from '../pages/ExportsPage';
 import { PipelinePage } from '../pages/PipelinePage';
 import { UploadPage } from '../pages/UploadPage';
 import { TaskListPage } from '../pages/TaskListPage';
@@ -21,10 +23,12 @@ const router = createBrowserRouter([
       { path: 'batches/:id', element: <BatchDetailPage /> },
       { path: 'tasks', element: <TaskListPage /> },
       { path: 'tasks/:id', element: <TaskDetailPage /> },
+      { path: 'exports', element: <ExportsPage /> },
+      { path: 'audit', element: <AuditPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },
-]);
+], { basename: import.meta.env.BASE_URL });
 
 export function AppRouter() {
   return <RouterProvider router={router} />;

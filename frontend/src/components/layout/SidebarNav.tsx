@@ -9,6 +9,8 @@ import {
   MessageSquare,
   Boxes,
   ShieldCheck,
+  ScrollText,
+  Download,
 } from 'lucide-react';
 import { useWorkspace } from './useWorkspace';
 
@@ -24,11 +26,17 @@ const NAV_GROUPS = [
   },
   {
     label: '投递',
-    items: [{ to: '/config/groups', label: '飞书通知', icon: MessageSquare, end: false }],
+    items: [
+      { to: '/config/groups', label: '飞书通知', icon: MessageSquare, end: false },
+      { to: '/exports', label: '导出结果', icon: Download, end: false },
+    ],
   },
   {
     label: '系统',
-    items: [{ to: '/settings', label: '设置', icon: Settings, end: false }],
+    items: [
+      { to: '/audit', label: '审计记录', icon: ScrollText, end: false },
+      { to: '/settings', label: '设置', icon: Settings, end: false },
+    ],
   },
 ];
 
@@ -129,6 +137,15 @@ export function SidebarNav({ open, onClose }: SidebarNavProps) {
           </div>
         </div>
       </div>
+
+      {import.meta.env.BASE_URL === '/extract-flow/' ? (
+        <a
+          href="/projects/extract-flow/"
+          className={`mx-2 mb-2 rounded-md px-3 py-2 text-xs text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg ${collapsed ? 'md:hidden' : ''}`}
+        >
+          ← 返回项目介绍
+        </a>
+      ) : null}
 
       <div className={`hidden border-t border-white/10 p-2 md:flex ${collapsed ? 'md:justify-center' : ''}`}>
         <button

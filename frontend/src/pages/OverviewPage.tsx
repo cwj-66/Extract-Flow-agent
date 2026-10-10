@@ -10,13 +10,14 @@ import {
   Loader2,
   UploadCloud,
 } from 'lucide-react';
-import { listTasks } from '../api/tasks';
+import { getOverview } from '../api/ops';
 import { ApiError } from '../api/client';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useWorkspace } from '../components/layout/useWorkspace';
+import { eventLabel } from '../lib/audit';
 import { formatRelativeTime, STATUS_META } from '../lib/status';
-import type { TaskStatus, TaskSummary } from '../types';
+import type { DashboardOverview, TaskStatus } from '../types';
 
 const STATUS_ORDER: TaskStatus[] = [
   'queued',
@@ -28,36 +29,21 @@ const STATUS_ORDER: TaskStatus[] = [
   'failed',
 ];
 
-interface OverviewStats {
-  total: number;
-  pending: number;
-  processing: number;
-  sent: number;
-  failed: number;
-  byStatus: Record<TaskStatus, number>;
-}
+const VALIDATION_LABELS = [
+  { key: 'valid' as const, label: '通过' },
+  { key: 'warning' as const, label: '需核对' },
+  { key: 'failed' as const, label: '有错误' },
+];
 
-function emptyByStatus(): Record<TaskStatus, number> {
-  return {
-    queued: 0,
-    parsing: 0,
-    extracting: 0,
-    pending_confirm: 0,
-    sending: 0,
-    sent: 0,
-    failed: 0,
-  };
-}
-
-function emptyStats(): OverviewStats {
-  return { total: 0, pending: 0, processing: 0, sent: 0, failed: 0, byStatus: emptyByStatus() };
+function formatElapsed(ms: number | null): string {
+  if (ms == null) return '—';
+  if (ms < 1000) return `${ms} 毫秒`;
+  return `${(ms / 1000).toFixed(1)} 秒`;
 }
 
 export function OverviewPage() {
   const { refreshKey, seeding, loadSamples } = useWorkspace();
-  const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [queue, setQueue] = useState<TaskSummary[]>([]);
-  const [recent, setRecent] = useState<TaskSummary[]>([]);
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -67,40 +53,13 @@ export function OverviewPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const [all, pending, sent, failed, queued, parsing, extracting, sending] = await Promise.all([
-          listTasks({ limit: 6 }),
-          listTasks({ status: 'pending_confirm', limit: 8 }),
-          listTasks({ status: 'sent', limit: 1 }),
-          listTasks({ status: 'failed', limit: 1 }),
-          listTasks({ status: 'queued', limit: 1 }),
-          listTasks({ status: 'parsing', limit: 1 }),
-          listTasks({ status: 'extracting', limit: 1 }),
-          listTasks({ status: 'sending', limit: 1 }),
-        ]);
+        const data = await getOverview();
         if (cancelled) return;
-        const byStatus: Record<TaskStatus, number> = {
-          queued: queued.total,
-          parsing: parsing.total,
-          extracting: extracting.total,
-          pending_confirm: pending.total,
-          sending: sending.total,
-          sent: sent.total,
-          failed: failed.total,
-        };
-        setStats({
-          total: all.total,
-          pending: pending.total,
-          processing: queued.total + parsing.total + extracting.total + sending.total,
-          sent: sent.total,
-          failed: failed.total,
-          byStatus,
-        });
-        setQueue(pending.items);
-        setRecent(all.items);
+        setOverview(data);
         setError(null);
       } catch (err) {
         if (!cancelled) {
-          setStats(emptyStats());
+          setOverview(null);
           setError(err instanceof ApiError ? err.message : '加载总览失败');
         }
       } finally {
@@ -113,16 +72,26 @@ export function OverviewPage() {
     };
   }, [refreshKey, retryKey]);
 
-  const s = stats ?? emptyStats();
-  const rate = s.total > 0 ? Math.round((s.sent / s.total) * 100) : 0;
-  const barMax = Math.max(...STATUS_ORDER.map((status) => s.byStatus[status]), 1);
+  const total = overview?.total ?? 0;
+  const pending = overview?.pending_confirm ?? 0;
+  const processing = overview?.processing ?? 0;
+  const sent = overview?.sent ?? 0;
+  const failed = overview?.failed ?? 0;
+  const rate = total > 0 ? Math.round((sent / total) * 100) : 0;
+  const barMax = Math.max(...STATUS_ORDER.map((status) => overview?.by_status?.[status] ?? 0), 1);
+  const editRate =
+    overview?.edit_rate == null ? '—' : `${Math.round(overview.edit_rate * 100)}%`;
 
   const metricCards = [
-    { label: '研报', value: s.total, hint: '全部任务', to: '/tasks', icon: FileText },
-    { label: '待确认', value: s.pending, hint: '需要人工审阅', to: '/tasks?status=pending_confirm', icon: Clock3 },
-    { label: '处理中', value: s.processing, hint: '排队、解析、提取、发送', to: '/pipeline', icon: Boxes },
-    { label: '已发送', value: s.sent, hint: '已推到飞书', to: '/tasks?status=sent', icon: CheckCircle2 },
+    { label: '研报', value: total, hint: '全部任务', to: '/tasks', icon: FileText },
+    { label: '待确认', value: pending, hint: '需要人工审阅', to: '/tasks?status=pending_confirm', icon: Clock3 },
+    { label: '处理中', value: processing, hint: '排队、解析、提取、发送', to: '/pipeline', icon: Boxes },
+    { label: '已发送', value: sent, hint: '已推到飞书', to: '/tasks?status=sent', icon: CheckCircle2 },
   ];
+
+  const queue = overview?.review_queue ?? [];
+  const recent = overview?.recent_tasks ?? [];
+  const events = overview?.recent_events ?? [];
 
   return (
     <div className="space-y-4">
@@ -155,7 +124,7 @@ export function OverviewPage() {
           <div>
             <p className="text-sm font-medium text-ink">已发送占比</p>
             <p className="mt-1 text-xs leading-relaxed text-muted">
-              {loading ? '正在统计' : `${s.sent} / ${s.total} 份研报已推到飞书`}
+              {loading ? '正在统计' : `${sent} / ${total} 份研报已推到飞书`}
             </p>
           </div>
         </div>
@@ -182,13 +151,37 @@ export function OverviewPage() {
         ))}
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="ef-card p-4">
+          <p className="text-xs text-subtle">人工修改比例</p>
+          <p className="mt-1 text-lg font-semibold tabular-nums text-ink">{loading ? '—' : editRate}</p>
+          <p className="mt-0.5 text-xs text-muted">
+            {loading ? '统计已发送快照' : `${overview?.edited_send_count ?? 0} / ${overview?.sent_with_log_count ?? 0} 次发送改过字段`}
+          </p>
+        </div>
+        <div className="ef-card p-4">
+          <p className="text-xs text-subtle">平均提取耗时</p>
+          <p className="mt-1 text-lg font-semibold tabular-nums text-ink">
+            {loading ? '—' : formatElapsed(overview?.avg_elapsed_ms ?? null)}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">有耗时记录的提取</p>
+        </div>
+        <div className="ef-card p-4">
+          <p className="text-xs text-subtle">估算费用</p>
+          <p className="mt-1 text-lg font-semibold tabular-nums text-ink">
+            {loading ? '—' : `¥${(overview?.total_estimated_cny ?? 0).toFixed(2)}`}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">字段提取阶段，不含图像描述</p>
+        </div>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-5">
         <section className="ef-card p-5 lg:col-span-2">
           <h3 className="text-sm font-semibold text-ink">状态分布</h3>
           <p className="mt-0.5 text-xs text-subtle">按当前任务状态计数</p>
           <ul className="mt-4 space-y-3">
             {STATUS_ORDER.map((status) => {
-              const value = s.byStatus[status];
+              const value = overview?.by_status?.[status] ?? 0;
               const width = loading ? 0 : Math.round((value / barMax) * 100);
               return (
                 <li key={status}>
@@ -203,10 +196,17 @@ export function OverviewPage() {
               );
             })}
           </ul>
-          {s.failed > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted">
+            {VALIDATION_LABELS.map((item) => (
+              <span key={item.key} className="rounded-md bg-canvas px-2 py-1">
+                {item.label} {loading ? '—' : overview?.validation?.[item.key] ?? 0}
+              </span>
+            ))}
+          </div>
+          {failed > 0 ? (
             <Link to="/tasks?status=failed" className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-brand">
               <CircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
-              {s.failed} 条失败可重试
+              {failed} 条失败可重试
             </Link>
           ) : null}
         </section>
@@ -264,36 +264,64 @@ export function OverviewPage() {
         </section>
       </div>
 
-      <section className="ef-card">
-        <div className="flex items-center justify-between px-5 py-4">
-          <h3 className="text-sm font-semibold text-ink">最近任务</h3>
-          <Link to="/tasks" className="text-xs font-medium text-brand hover:underline">
-            任务列表
-          </Link>
-        </div>
-        {loading ? (
-          <div className="px-5 py-8 text-sm text-subtle">加载中…</div>
-        ) : recent.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-subtle">还没有任务</div>
-        ) : (
-          <ul className="divide-y divide-line">
-            {recent.map((task) => (
-              <li key={task.id}>
-                <Link
-                  to={task.batch_id ? `/batches/${task.batch_id}` : `/tasks/${task.id}`}
-                  className="flex items-center justify-between gap-2 px-5 py-3 hover:bg-canvas"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-ink">{task.company_name ?? task.source_file}</p>
-                    <p className="mt-0.5 text-xs text-subtle">{formatRelativeTime(task.updated_at)}</p>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="ef-card">
+          <div className="flex items-center justify-between px-5 py-4">
+            <h3 className="text-sm font-semibold text-ink">最近任务</h3>
+            <Link to="/tasks" className="text-xs font-medium text-brand hover:underline">
+              任务列表
+            </Link>
+          </div>
+          {loading ? (
+            <div className="px-5 py-8 text-sm text-subtle">加载中…</div>
+          ) : recent.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-subtle">还没有任务</div>
+          ) : (
+            <ul className="divide-y divide-line">
+              {recent.map((task) => (
+                <li key={task.id}>
+                  <Link
+                    to={task.batch_id ? `/batches/${task.batch_id}` : `/tasks/${task.id}`}
+                    className="flex items-center justify-between gap-2 px-5 py-3 hover:bg-canvas"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-ink">{task.company_name ?? task.source_file}</p>
+                      <p className="mt-0.5 text-xs text-subtle">{formatRelativeTime(task.updated_at)}</p>
+                    </div>
+                    <StatusBadge status={task.status} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="ef-card">
+          <div className="flex items-center justify-between px-5 py-4">
+            <h3 className="text-sm font-semibold text-ink">最近操作</h3>
+            <Link to="/audit" className="text-xs font-medium text-brand hover:underline">
+              审计记录
+            </Link>
+          </div>
+          {loading ? (
+            <div className="px-5 py-8 text-sm text-subtle">加载中…</div>
+          ) : events.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-subtle">还没有操作记录</div>
+          ) : (
+            <ul className="divide-y divide-line">
+              {events.map((event) => (
+                <li key={event.id} className="px-5 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-ink">{eventLabel(event.event_type)}</p>
+                    <p className="shrink-0 text-xs text-subtle">{formatRelativeTime(event.created_at)}</p>
                   </div>
-                  <StatusBadge status={task.status} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  <p className="mt-0.5 truncate text-xs text-muted">{event.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

@@ -5,10 +5,10 @@ import logging
 from pathlib import Path
 
 from app.cleaners.decomposer.schemas import ImageType
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MODEL = "qwen3.7-plus"
 
 
 def _encode_image(img_path: Path) -> tuple[str, str]:
@@ -19,10 +19,10 @@ def _encode_image(img_path: Path) -> tuple[str, str]:
     return ext, b64
 
 
-def _call_vlm(client, prompt: str, img_path: Path, model: str = _DEFAULT_MODEL) -> str:
+def _call_vlm(client, prompt: str, img_path: Path, model: str | None = None) -> str:
     ext, b64 = _encode_image(img_path)
     resp = client.chat.completions.create(
-        model=model,
+        model=model or settings.DASHSCOPE_MODEL,
         messages=[
             {
                 "role": "user",

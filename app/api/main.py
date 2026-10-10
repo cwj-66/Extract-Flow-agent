@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.deps import get_task_queue
-from app.api.routers import batches, config, demo, health, tasks, upload
+from app.api.routers import batches, config, demo, health, ops, tasks, upload
 from app.db import init_db
 
 
@@ -51,6 +51,7 @@ app.include_router(upload.router)
 app.include_router(batches.router)
 app.include_router(tasks.router)
 app.include_router(config.router)
+app.include_router(ops.router)
 
 
 @app.get("/")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -31,6 +32,7 @@ from app.extractor.schemas import ExtractionMeta, ExtractionResult
 from app.extractor.validation import check_report
 from app.feishu.card_builder import build_report_card
 from app.feishu.client import FeishuClient
+from app.services.audit import log_event
 from app.services.exceptions import (
     BatchNotFoundError,
     TaskNotFoundError,
@@ -40,6 +42,7 @@ from app.services.exceptions import (
 from app.services.group_service import GroupService
 from app.services.pipeline_service import ALLOWED_EXTENSIONS, PipelineService
 from app.services.store import TaskRecord, TaskStore, utcnow
+from app.services.task_queue import TaskQueue
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +73,14 @@ class TaskService:
         user_id: str = "anonymous",
         document_type: str = "broker_report_review",
     ) -> UploadResponse:
-        self._upload_dir.mkdir(parents=True, exist_ok=True)
-        task_id = await self._save_and_enqueue(
-            upload,
-            user_id=user_id,
-            document_type=document_type,
-        )
+        ext = Path((upload.filename or "unnamed").replace("\\", "/")).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise UploadValidationError(f"不支持的文件类型: {ext}（仅支持 PDF）")
+        async with self._reserve_uploads(1) as admission:
+            self._upload_dir.mkdir(parents=True, exist_ok=True)
+            task_id = await self._save_and_enqueue(
+                upload, user_id=user_id, document_type=document_type, admission=admission,
+            )
         return UploadResponse(
             task_id=task_id,
             poll_url=f"/tasks/{task_id}",
@@ -95,8 +100,6 @@ class TaskService:
         if len(uploads) > MAX_BATCH_FILES:
             raise UploadValidationError(f"单次最多上传 {MAX_BATCH_FILES} 个文件")
 
-        self._upload_dir.mkdir(parents=True, exist_ok=True)
-
         accepted_files: list[UploadFile] = []
         rejected: list[RejectedUpload] = []
         for upload in uploads:
@@ -114,22 +117,20 @@ class TaskService:
         if not accepted_files:
             raise UploadValidationError("没有可接受的文件（仅支持 PDF）")
 
-        name = (batch_name or "").strip() or _default_batch_name(accepted_files)
-        batch = self._store.create_batch(
-            name=name,
-            user_id=user_id,
-            total=len(accepted_files),
-        )
-
-        task_ids: list[str] = []
-        for upload in accepted_files:
-            task_id = await self._save_and_enqueue(
-                upload,
-                user_id=user_id,
-                document_type=document_type,
-                batch_id=batch.id,
+        # 先为整批预留名额，容量不足时不创建批次、任务或文件。
+        async with self._reserve_uploads(len(accepted_files)) as admission:
+            self._upload_dir.mkdir(parents=True, exist_ok=True)
+            name = (batch_name or "").strip() or _default_batch_name(accepted_files)
+            batch = self._store.create_batch(
+                name=name, user_id=user_id, total=len(accepted_files),
             )
-            task_ids.append(task_id)
+            task_ids: list[str] = []
+            for upload in accepted_files:
+                task_id = await self._save_and_enqueue(
+                    upload, user_id=user_id, document_type=document_type,
+                    batch_id=batch.id, admission=admission,
+                )
+                task_ids.append(task_id)
 
         return BatchUploadResponse(
             batch_id=batch.id,
@@ -144,7 +145,22 @@ class TaskService:
         """写入预计算样例任务，不入解析队列。"""
         from app.services.demo_seed import seed_demo_tasks
 
-        return [self._to_summary(record) for record in seed_demo_tasks(self._store)]
+        created = seed_demo_tasks(self._store)
+        for record in created:
+            self._audit(
+                "demo_seeded",
+                f"已载入样例 {record.source_file}",
+                task_id=record.id,
+                actor="system",
+            )
+        return [self._to_summary(record) for record in created]
+
+    def bootstrap_demo(self) -> list[TaskSummary]:
+        """载入样例并放到待确认、已发送、失败可重试等状态。"""
+        from app.services.demo_bootstrap import bootstrap_demo_tasks
+
+        records = bootstrap_demo_tasks(self._store, session_factory=get_session_factory())
+        return [self._to_summary(record) for record in records]
 
     def get_batch(self, batch_id: str) -> BatchResponse:
         batch = self._store.get_batch(batch_id)
@@ -261,6 +277,14 @@ class TaskService:
             record.extraction = attach_meta(body.fields.model_dump(), meta_dict)
         final_fields, _ = split_meta(record.extraction)
         final_fields = deepcopy(final_fields)
+        if final_fields != ai_fields:
+            self._audit(
+                "field_edited",
+                "确认前修改了提取字段",
+                task_id=task_id,
+                actor=user_id,
+                details={"changed": _changed_keys(ai_fields, final_fields)},
+            )
 
         group_id = (body.group_id or "").strip()
         resolved = self._resolve_group(group_id)
@@ -294,6 +318,12 @@ class TaskService:
                 final_fields=final_fields,
                 error_message=err,
             )
+            self._audit(
+                "send_failed",
+                f"飞书发送失败: {err}",
+                task_id=task_id,
+                actor=user_id,
+            )
             logger.exception("任务 %s 飞书发送失败", task_id)
             raise TaskStateError(task_id, f"飞书发送失败: {err}") from exc
 
@@ -307,6 +337,12 @@ class TaskService:
             ai_fields=ai_fields,
             final_fields=final_fields,
             error_message=None,
+        )
+        self._audit(
+            "task_sent",
+            f"已发送到飞书群 {resolved_group_id}",
+            task_id=task_id,
+            actor=user_id,
         )
         logger.info("任务 %s 已发送飞书（group=%s）", task_id, resolved_group_id)
         return TaskConfirmResponse(
@@ -353,6 +389,15 @@ class TaskService:
         except Exception:
             logger.exception("写入 send_logs 失败（task=%s）", task_id)
 
+    @asynccontextmanager
+    async def _reserve_uploads(self, count: int):
+        """生产单进程队列支持预留；可选 Celery 维持原有投递接口。"""
+        if isinstance(self._queue, TaskQueue):
+            async with self._queue.reserve(count) as admission:
+                yield admission
+        else:
+            yield self._queue
+
     async def _save_and_enqueue(
         self,
         upload: UploadFile,
@@ -360,6 +405,7 @@ class TaskService:
         user_id: str,
         document_type: str,
         batch_id: str | None = None,
+        admission=None,
     ) -> str:
         raw_name = upload.filename or "unnamed"
         relative_path = raw_name.replace("\\", "/") if ("/" in raw_name or "\\" in raw_name) else None
@@ -378,14 +424,44 @@ class TaskService:
         )
         dest = self._upload_dir / f"{record.id}{ext}"
 
-        content = await upload.read()
-        dest.write_bytes(content)
+        try:
+            # 分块落盘，避免并发上传时把整份 PDF 复制到内存。
+            with dest.open("wb") as target:
+                while chunk := await upload.read(1024 * 1024):
+                    target.write(chunk)
+            record.file_path = dest
+            self._store.save(record)
+            await (admission or self._queue).enqueue(record.id)
+        except BaseException:
+            self._store.delete(record.id)
+            dest.unlink(missing_ok=True)
+            raise
+        self._audit(
+            "task_uploaded",
+            f"已上传 {display_name}",
+            task_id=record.id,
+            actor=user_id,
+        )
 
-        record.file_path = dest
-        self._store.save(record)
-
-        await self._queue.enqueue(record.id)
         return record.id
+
+    def _audit(
+        self,
+        event_type: str,
+        message: str,
+        *,
+        task_id: str | None = None,
+        actor: str = "system",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        log_event(
+            event_type,
+            message,
+            task_id=task_id,
+            actor=actor,
+            details=details,
+            session_factory=get_session_factory(),
+        )
 
     def _require(self, task_id: str) -> TaskRecord:
         record = self._store.get(task_id)
@@ -413,6 +489,11 @@ class TaskService:
             updated_at=record.updated_at,
             error_message=record.error_message,
         )
+
+
+def _changed_keys(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    keys = set(before) | set(after)
+    return sorted(key for key in keys if before.get(key) != after.get(key))
 
 
 def _default_batch_name(uploads: list[UploadFile]) -> str:

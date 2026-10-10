@@ -9,6 +9,8 @@ const PAGE_META: { test: (path: string) => boolean; title: string; subtitle: str
   { test: (path) => path === '/tasks', title: '任务队列', subtitle: '按公司、文件名或状态查找，审阅后再发飞书。' },
   { test: (path) => path.startsWith('/batches/'), title: '批次进度', subtitle: '同一批上传的文件处理到哪一步。' },
   { test: (path) => path === '/config/groups', title: '飞书通知', subtitle: '确认发送后，卡片推送到这些群。' },
+  { test: (path) => path === '/exports', title: '导出结果', subtitle: '只导出已经确认发送的字段。' },
+  { test: (path) => path === '/audit', title: '审计记录', subtitle: '上传、提取、修改和发送都留在这里。' },
   { test: (path) => path === '/settings', title: '设置', subtitle: '本机偏好与版本信息。' },
 ];
 

@@ -30,3 +30,59 @@ grafts:
     notes: >
       MIT, Copyright (c) 2026 Your Name. Issues are computed on read
       for research-report fields. They do not block confirm.
+  - name: audit-log
+    source: SAHARIARSHOWMIK/ai-document-processing-automation
+    sha: ddb4085
+    target: app/services/audit.py
+    files:
+      - app/services/audit.py → app/services/audit.py
+      - app/models.py AuditLog → app/db/models.py AuditLogRow
+      - app/routers/dashboard.py list_audit_logs → app/api/routers/ops.py
+    trimmed:
+      - integer document_id
+      - invoice event types document_classified, document_approved, document_rejected
+    notes: >
+      MIT, Copyright (c) 2026 Your Name. Events use string task ids.
+      Upload, parse, extract, field edit, send, and export write rows.
+      A failed audit write does not fail the task.
+  - name: operations-dashboard
+    source: SAHARIARSHOWMIK/ai-document-processing-automation
+    sha: ddb4085
+    target: app/services/dashboard.py
+    files:
+      - app/routers/dashboard.py get_metrics/get_overview → app/services/dashboard.py
+    trimmed:
+      - document type distribution
+      - automation_rate
+      - average classification confidence
+    notes: >
+      MIT, Copyright (c) 2026 Your Name. Overview adds validation mix,
+      extract latency, estimated cost, and human edit rate from send logs.
+  - name: sent-export
+    source: SAHARIARSHOWMIK/ai-document-processing-automation
+    sha: ddb4085
+    target: app/services/export.py
+    files:
+      - app/services/export.py → app/services/export.py
+      - app/models.py ExportLog → app/db/models.py ExportLogRow
+    trimmed:
+      - approved/exported status change
+      - invoice field envelopes
+      - one ExportLog row per document
+    notes: >
+      MIT, Copyright (c) 2026 Your Name. Only sent tasks export.
+      Data is the confirm-time final_fields snapshot. Task status stays sent.
+  - name: demo-bootstrap
+    source: SAHARIARSHOWMIK/ai-document-processing-automation
+    sha: ddb4085
+    target: app/services/demo_bootstrap.py
+    files:
+      - app/routers/dashboard.py bootstrap_demo → app/services/demo_bootstrap.py
+    trimmed:
+      - process_document_pipeline
+      - approve, reject, request_correction, export_documents_json
+      - invoice scenario names
+    notes: >
+      MIT, Copyright (c) 2026 Your Name. Samples land in pending_confirm,
+      sent, and failed-without a model call.
+

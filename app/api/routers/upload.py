@@ -6,7 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.api.deps import TaskServiceDep, UserIdDep
 from app.api.schemas.task import BatchUploadResponse, UploadResponse
-from app.services.exceptions import UploadValidationError
+from app.services.exceptions import QueueCapacityError, UploadValidationError
 
 router = APIRouter()
 
@@ -22,6 +22,9 @@ async def upload_documents(
         return await service.create_from_upload(file, user_id=user_id)
     except UploadValidationError as exc:
         raise HTTPException(status_code=400, detail=exc.message) from exc
+    except QueueCapacityError as exc:
+        raise HTTPException(status_code=503, detail=exc.message,
+                            headers={"Retry-After": str(exc.retry_after)}) from exc
 
 
 @router.post("/upload/batch", response_model=BatchUploadResponse)
@@ -40,3 +43,6 @@ async def upload_batch(
         )
     except UploadValidationError as exc:
         raise HTTPException(status_code=400, detail=exc.message) from exc
+    except QueueCapacityError as exc:
+        raise HTTPException(status_code=503, detail=exc.message,
+                            headers={"Retry-After": str(exc.retry_after)}) from exc

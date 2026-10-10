@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.api.schemas.config import GroupConfig
 from app.api.schemas.task import TaskConfirmRequest, TaskStatus
-from app.db.models import Base, SendLogRow
+from app.db.models import AuditLogRow, Base, SendLogRow
 from app.extractor.schemas import ExtractionResult
 from app.services.db_store import DbTaskStore
 from app.services.exceptions import TaskStateError
@@ -94,6 +94,8 @@ def test_confirm_sends_and_marks_sent(svc) -> None:
         assert len(logs) == 1
         assert logs[0].status == "sent"
         assert logs[0].user_id == "u1"
+        events = session.scalars(select(AuditLogRow)).all()
+        assert any(event.event_type == "task_sent" and event.actor == "u1" for event in events)
 
 
 def test_confirm_failure_marks_failed(svc, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fetchHealth, type HealthResponse } from '../../api/health';
 import { ApiError } from '../../api/client';
-import { listTasks, seedDemo } from '../../api/tasks';
+import { listTasks } from '../../api/tasks';
+import { bootstrapDemo } from '../../api/ops';
 import { WorkspaceContext } from './useWorkspace';
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
@@ -34,10 +35,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const loadSamples = useCallback(async () => {
     setSeeding(true);
     try {
-      const created = await seedDemo();
+      const created = await bootstrapDemo();
+      const pending = created.filter((item) => item.status === 'pending_confirm').length;
       toast.success(
         created.length > 0
-          ? `已载入 ${created.length} 份样例，可直接打开审阅`
+          ? `已准备 ${created.length} 份样例，其中 ${pending} 份待确认`
           : '样例已在任务列表中'
       );
       setRefreshKey((key) => key + 1);

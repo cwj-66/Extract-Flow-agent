@@ -25,7 +25,10 @@ if settings.USE_CELERY:
 
     _task_queue: Any = CeleryTaskQueue(max_workers=settings.PIPELINE_CONCURRENCY)
 else:
-    _task_queue = TaskQueue(_pipeline, max_workers=settings.PIPELINE_CONCURRENCY)
+    _task_queue = TaskQueue(
+        _pipeline, max_workers=settings.PIPELINE_CONCURRENCY,
+        max_pending=settings.PIPELINE_MAX_PENDING,
+    )
 
 _group_service = GroupService()
 _task_service = TaskService(_store, _pipeline, _task_queue, group_service=_group_service)

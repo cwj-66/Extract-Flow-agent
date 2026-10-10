@@ -1,0 +1,16 @@
+/* 复用客服 Agent 展示页，补充研报预览与窄屏适配。 */
+body{font-family:Arial,"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif}
+.extract-case .report-preview-body{display:grid;grid-template-columns:1fr 1fr;min-height:300px;font-size:15px;line-height:1.85}
+.report-preview-source,.report-preview-fields{padding:26px 22px;min-width:0}
+.report-preview-source{border-right:1px solid #e2e8f0;background:#f8fafc}
+.report-preview-body small{display:block;color:#64748b;font-size:12px;letter-spacing:.5px}
+.report-preview-source h3{font-size:19px;margin:18px 0 14px}
+.report-preview-source p{font-size:15px;margin-bottom:24px}
+.source-lines{display:grid;gap:10px}.source-lines i{display:block;height:6px;border-radius:3px;background:#e2e8f0}.source-lines i:last-child{width:65%}
+.report-preview-fields dl{margin:18px 0}.report-preview-fields dl>div{border-bottom:1px solid #e2e8f0;padding:9px 0}
+.report-preview-fields dt{font-size:12px;color:#64748b}.report-preview-fields dd{margin:3px 0 0;color:#1e3a8a;font-size:15px}
+.review-note{display:inline-block;background:#fffbeb;color:#92400e;padding:5px 9px;border-radius:5px;font-size:12px}
+.extract-case .agent-hero{gap:42px}.extract-case .agent-hero h1{font-size:clamp(36px,4.2vw,61px)}
+.extract-case .react-loop{overflow-wrap:anywhere}.extract-case .tech-wrap{overflow-x:auto}
+@media(max-width:700px){.extract-case .agent-hero h1{font-size:36px}.extract-case .report-preview-body{grid-template-columns:1fr}.report-preview-source{border-right:0;border-bottom:1px solid #e2e8f0}.extract-case .demo-bar{flex-wrap:wrap}.extract-case .tech-table{min-width:540px}.extract-case .agent-section h2{font-size:30px}}
+@media(max-width:380px){.extract-case .agent-hero h1{font-size:31px}.extract-case .agent-actions .primary-cta{font-size:18px}.extract-case .capacity-numbers{gap:10px}.extract-case .agent-section>.eyebrow{font-size:14px}}

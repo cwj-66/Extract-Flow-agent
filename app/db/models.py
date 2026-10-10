@@ -94,6 +94,39 @@ class GroupConfigRow(Base):
     )
 
 
+class AuditLogRow(Base):
+    """追加写入的操作记录。来源：文档平台 AuditLog，任务 ID 改为字符串。"""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    task_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    details: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    actor: Mapped[str] = mapped_column(String(128), nullable=False, default="system")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ExportLogRow(Base):
+    """一次已发送结果导出。不改变任务状态。"""
+
+    __tablename__ = "export_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    export_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    file_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    task_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    task_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class SendLogRow(Base):
     __tablename__ = "send_logs"
 
