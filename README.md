@@ -34,7 +34,7 @@
 
 | 能力              | 实现方式                                       |
 | --------------- | ------------------------------------------ |
-| 📄 **PDF 文档解析** | MinerU `pipeline` 后端解析正文、表格与公式，生成 Markdown |
+| 📄 **PDF 文档解析** | 默认调用 MinerU 云端 `vlm` 解析正文、表格与公式，生成 Markdown；可切换本地 `pipeline` |
 | 🖼️ **图像信息补充**  | 图片去重与过滤，按上下文区分图表和普通图片，调用视觉模型生成描述           |
 | 🧩 **结构化提取**    | JSON 模式输出，Pydantic 校验，JSON 解析失败时修复重试       |
 | 🔎 **原文出处定位**   | 为字段记录原文摘录和 Markdown 位置，辅助审阅时回查依据           |
@@ -50,7 +50,7 @@
 
 ```mermaid
 flowchart LR
-    A["📄 PDF 研报"] --> B["MinerU 本地解析"]
+    A["📄 PDF 研报"] --> B["MinerU 云端解析"]
     B --> C["正文 · 表格 · 公式"]
     B --> D["图片过滤与去重"]
     D --> E["视觉模型描述"]
@@ -79,7 +79,7 @@ flowchart LR
 
 - **管线复用**：CLI、API 与 Celery 执行路径复用 [app/pipeline.py](app/pipeline.py)，文档解析、提取与卡片构建保持统一编排。
 - **业务与 HTTP 分离**：路由负责请求和响应映射，任务处理、群配置、确认发送等逻辑位于 `app/services/`。
-- **解析进程隔离**：MinerU 在独立子进程中运行，设置超时和资源相关环境变量，由管线接收解析结果或错误。
+- **云端解析**：签名上传 PDF → 轮询任务 → 流式下载结果 ZIP，复用现有管线；设置请求与任务超时。本地模式保留独立子进程入口。
 - **结果与依据并存**：结构化字段之外保留原文出处和提取用量；出处指向解析后的 Markdown，便于与模型输入对照。
 - **人工确认后发送**：模型生成结果先进入待确认状态，用户可修改字段；发送记录保留修改前后内容和成功 / 失败结果。
 - **任务持久化与并发控制**：本地默认使用 SQLite，Compose 使用 Postgres；默认由进程内队列限制并发，另提供 Celery + Redis 执行路径。
@@ -99,7 +99,7 @@ queued → parsing → extracting → pending_confirm → sending → sent
 
 ### 本地处理与云端调用
 
-MinerU 文档解析、图片哈希去重与过滤在本地完成；**图像描述和字段提取调用 DashScope 云端模型**。通过先解析、再过滤、最后提取，减少无关内容进入模型输入。
+默认将 PDF 上传到 **MinerU 官方云端**解析，下载 Markdown、结构化条目和图片；图像描述和字段提取调用 **DashScope 云端模型**。服务器不运行 MinerU 推理模型。通过先解析、再过滤、最后提取，减少无关内容进入模型输入。
 
 工作台中的 Token 与费用统计对应**字段提取阶段**，费用按配置单价估算，不代表包含图像描述在内的完整账单。
 
@@ -157,7 +157,7 @@ MinerU 文档解析、图片哈希去重与过滤在本地完成；**图像描�
 
 | 层次    | 技术                                                              |
 | ----- | --------------------------------------------------------------- |
-| 文档与模型 | MinerU 3.x `pipeline` · DashScope OpenAI 兼容接口                   |
+| 文档与模型 | MinerU 云端 v4 API（默认 `vlm`）/ 本地 3.x `pipeline` · DashScope OpenAI 兼容接口 |
 | 后端    | Python 3.10–3.12 · FastAPI · Pydantic v2 · uvicorn · SQLAlchemy |
 | 前端    | React 19 · TypeScript · Vite · Tailwind CSS · Zustand           |
 | 存储与任务 | SQLite / Postgres · 进程内任务队列 · 可选 Celery + Redis                 |
@@ -176,13 +176,15 @@ cd Extract-Flow-agent
 cp .env.example .env
 ```
 
-在 `.env` 中填写 `DASHSCOPE_API_KEY`，然后启动服务：
+在 `.env` 中填写 `DASHSCOPE_API_KEY` 和 `MINERU_API_TOKEN`，然后启动服务。MinerU Token 在 [官方 API 管理页](https://mineru.net/apiManage)创建，只填写原始 Token，不加 `Bearer`：
 
 ```bash
 docker compose up -d
 ```
 
-首次启动会构建后端与前端镜像。Compose 编排 Postgres、Redis、API 与前端，并为后端注入数据库连接配置。
+首次启动会构建后端与前端镜像。默认镜像只安装云端运行依赖，不安装 MinerU、PyTorch 或模型，适合 4GB 服务器。Compose 编排 Postgres、Redis、API 与前端，并为后端注入数据库连接配置。
+
+云端解析使用[官方 v4 文件上传 API](https://mineru.net/apiManage/docs)：申请签名 URL、上传文件、查询批次、下载解析结果。每份 PDF 当前官方限制为 200 MB、200 页，页数限制由云端检查；配额以账号 API 管理页为准。缺少 Token、网络失败或解析超时会显示在任务错误中，不会自动回退本地模型。更换 Token 后重启后端生效。
 
 
 | 入口            | 地址                                                    |
@@ -200,6 +202,15 @@ docker compose up -d
 | 变量                      | 默认值            | 说明                   |
 | ----------------------- | -------------- | -------------------- |
 | `DASHSCOPE_API_KEY`     | —              | 图像描述与字段提取所需的 API Key |
+| `MINERU_MODE`           | `cloud`        | 云端解析；`local` 使用原有本地 MinerU |
+| `MINERU_API_TOKEN`      | —              | 官方云端 API Token，仅服务端保存 |
+| `MINERU_API_BASE_URL`   | `https://mineru.net` | MinerU API 地址 |
+| `MINERU_MODEL_VERSION`  | `vlm`          | 云端模型，可选 `vlm` / `pipeline` |
+| `MINERU_LANGUAGE`       | `ch`           | 文档解析语言 |
+| `MINERU_TIMEOUT_SEC`    | `1200`         | 上传、排队、解析和下载的任务超时秒数 |
+| `MINERU_REQUEST_TIMEOUT_SEC` | `60`      | 单次网络请求超时秒数 |
+| `MINERU_POLL_INTERVAL_SEC` | `3`         | 云端任务轮询间隔秒数 |
+| `INSTALL_LOCAL_MINERU`  | `false`        | 构建 Docker 镜像时是否安装本地重依赖 |
 | `POSTGRES_USER`         | `extract`      | Compose 数据库用户名       |
 | `POSTGRES_PASSWORD`     | `extract`      | Compose 数据库密码        |
 | `POSTGRES_DB`           | `extract_flow` | Compose 数据库名称        |
@@ -239,23 +250,25 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 ```bash
 pip install -r requirements-api.txt
-pip install -e ./my_project
 ```
 
-本机运行时需将 `DASHSCOPE_API_KEY` 设置为进程环境变量。例如 PowerShell：
+云端模式不需要安装 `my_project`。本机运行时可设置进程环境变量，或启动 API 时通过 `--env-file .env` 加载配置。例如 PowerShell：
 
 ```powershell
 $env:DASHSCOPE_API_KEY = "your-api-key"
+$env:MINERU_API_TOKEN = "your-mineru-token"
 ```
 
 默认使用本地 SQLite。若已启动容器后端，先停止它以释放 8000 端口，再启动本机 API：
 
 ```bash
 docker compose stop backend
-uvicorn app.api.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn app.api.main:app --env-file .env --reload --host 127.0.0.1 --port 8000
 ```
 
 前端开发服务在另一个终端运行。连接 Compose 的 Postgres 时，可参照 [.env.example](.env.example) 将 `DATABASE_URL` 设置为本机进程环境变量。
+
+需要本地解析时，安装 `pip install -e ./my_project`、准备官方 MinerU 模型并设置 `MINERU_MODE=local`。Docker 本地模式还需设置 `INSTALL_LOCAL_MINERU=true` 后重新构建镜像；4GB 服务器推荐使用默认云端模式。CLI 只读取进程环境变量，不自动加载 `.env`。
 
 CLI 复用同一套解析与提取管线：
 
@@ -293,7 +306,7 @@ app/
 ├── workers/          # Celery 任务执行入口
 └── pipeline.py       # CLI / API / Celery 共用管线
 frontend/             # React 工作台
-my_project/           # MinerU 等管线依赖
+my_project/           # 本地 MinerU 模式的可选重依赖
 tests/                # 单元测试
 scripts/              # 模型准备与并发验证辅助脚本
 ```

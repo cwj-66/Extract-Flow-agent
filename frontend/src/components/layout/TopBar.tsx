@@ -4,7 +4,7 @@ import { useWorkspace } from './useWorkspace';
 
 const PAGE_META: { test: (path: string) => boolean; title: string; subtitle: string }[] = [
   { test: (path) => path === '/', title: '总览', subtitle: '待确认、处理进度和最近任务。' },
-  { test: (path) => path === '/upload', title: '上传研报', subtitle: '拖入 PDF。解析在本地完成，确认后再发送。' },
+  { test: (path) => path === '/upload', title: '上传研报', subtitle: '拖入 PDF，自动解析并提取，确认后再发送。' },
   { test: (path) => path === '/pipeline', title: '处理流水线', subtitle: '每份研报从排队到发送的阶段。' },
   { test: (path) => path === '/tasks', title: '任务队列', subtitle: '按公司、文件名或状态查找，审阅后再发飞书。' },
   { test: (path) => path.startsWith('/batches/'), title: '批次进度', subtitle: '同一批上传的文件处理到哪一步。' },

@@ -1,6 +1,6 @@
 const STAGES = [
   { title: 'PDF 接入', hint: '单份 / 批量' },
-  { title: 'MinerU 解析', hint: '版面本地识别' },
+  { title: 'MinerU 解析', hint: '正文、表格与公式' },
   { title: '多模态分解', hint: '表 / 图分路' },
   { title: 'Schema 提取', hint: 'DashScope JSON' },
   { title: '人工确认', hint: '出处可回溯' },

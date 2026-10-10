@@ -133,7 +133,7 @@ export function OverviewPage() {
             从 PDF 到可核对的飞书卡片
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
-            本地解析版面，按固定字段提取。人工确认后才发送，失败可以重试。
+            解析正文、表格与公式，按固定字段提取。人工确认后才发送，失败可以重试。
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Link to="/upload" className="ef-btn ef-btn-primary">

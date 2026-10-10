@@ -1,4 +1,4 @@
-"""PDF 清洗：官方 MinerU CLI（pipeline）解析 + 多模态分解。"""
+"""PDF 清洗：MinerU 云端或本地解析 + 多模态分解。"""
 
 from __future__ import annotations
 
@@ -12,10 +12,11 @@ from pathlib import Path
 
 from app.cleaners.decomposer.engine import enrich_mineru_markdown
 from app.cleaners.types import ParsedDoc
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_MINERU_TIMEOUT_SEC = int(os.getenv("MINERU_TIMEOUT_SEC", "1200"))
+_MINERU_TIMEOUT_SEC = settings.MINERU_TIMEOUT_SEC
 
 
 def _parse_with_mineru_subprocess(pdf_path: Path) -> dict | None:
@@ -108,11 +109,19 @@ def _enrich(md_content: str, pdf_path: Path, structured_items: list) -> ParsedDo
 
 
 def parse_pdf(pdf_path: Path) -> ParsedDoc:
-    """PDF 解析入口：官方 MinerU pipeline。"""
+    """PDF 解析入口：默认云端，显式 local 时使用原有 MinerU 子进程。"""
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF 文件不存在: {pdf_path}")
 
-    payload = _parse_with_mineru_subprocess(pdf_path)
+    mode = settings.MINERU_MODE.strip().lower()
+    if mode == "cloud":
+        from app.cleaners.handlers.mineru_cloud import parse_cloud_pdf
+
+        payload = parse_cloud_pdf(pdf_path)
+    elif mode == "local":
+        payload = _parse_with_mineru_subprocess(pdf_path)
+    else:
+        raise ValueError("MINERU_MODE 只能为 cloud 或 local")
     if payload is None:
         raise RuntimeError(f"MinerU 解析失败: {pdf_path.name}")
 

@@ -39,6 +39,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        INSTALL_LOCAL_MINERU: ${INSTALL_LOCAL_MINERU:-false}
     container_name: extract-flow-backend
     depends_on:
       postgres:
@@ -53,6 +55,14 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-extract}:${POSTGRES_PASSWORD:-extract}@postgres:5432/${POSTGRES_DB:-extract_flow}
       REDIS_URL: redis://redis:6379/0
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      MINERU_MODE: ${MINERU_MODE:-cloud}
+      MINERU_API_TOKEN: ${MINERU_API_TOKEN:-}
+      MINERU_API_BASE_URL: ${MINERU_API_BASE_URL:-https://mineru.net}
+      MINERU_MODEL_VERSION: ${MINERU_MODEL_VERSION:-vlm}
+      MINERU_LANGUAGE: ${MINERU_LANGUAGE:-ch}
+      MINERU_TIMEOUT_SEC: ${MINERU_TIMEOUT_SEC:-1200}
+      MINERU_REQUEST_TIMEOUT_SEC: ${MINERU_REQUEST_TIMEOUT_SEC:-60}
+      MINERU_POLL_INTERVAL_SEC: ${MINERU_POLL_INTERVAL_SEC:-3}
       DECOMPOSER_ENABLED: ${DECOMPOSER_ENABLED:-true}
       DECOMPOSER_BATCH_SIZE: ${DECOMPOSER_BATCH_SIZE:-5}
       PIPELINE_CONCURRENCY: ${PIPELINE_CONCURRENCY:-3}

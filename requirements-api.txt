@@ -1,4 +1,4 @@
-# FastAPI 后端依赖（与 MinerU 管线环境分离安装）
+# 云端部署的完整运行依赖；不安装本地 MinerU / PyTorch 模型。
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 python-multipart>=0.0.12
@@ -7,3 +7,6 @@ sqlalchemy>=2.0.36
 psycopg[binary]>=3.2.0
 redis>=5.0.0
 celery[redis]>=5.4.0
+httpx>=0.28.0
+openai>=2.45.0
+requests>=2.32.0

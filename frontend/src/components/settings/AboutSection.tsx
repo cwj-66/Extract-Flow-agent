@@ -13,7 +13,7 @@ export function AboutSection() {
           v{APP_VERSION}
         </span>
       </div>
-      <p>上传券商研报 PDF，本地 MinerU 解析 + Schema 提取，确认后推送飞书 Card v2。</p>
+      <p>上传券商研报 PDF，MinerU 解析并提取研报字段，确认后推送飞书 Card v2。</p>
       <p>
         API 文档：
         <a

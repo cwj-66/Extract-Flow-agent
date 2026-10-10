@@ -12,6 +12,16 @@ class Settings:
     DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "")
     DASHSCOPE_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
+    # 云端模式无需安装 MinerU 模型；local 保留原有子进程解析入口。
+    MINERU_MODE: str = os.getenv("MINERU_MODE", "cloud")
+    MINERU_API_TOKEN: str = os.getenv("MINERU_API_TOKEN", "")
+    MINERU_API_BASE_URL: str = os.getenv("MINERU_API_BASE_URL", "https://mineru.net")
+    MINERU_MODEL_VERSION: str = os.getenv("MINERU_MODEL_VERSION", "vlm")
+    MINERU_LANGUAGE: str = os.getenv("MINERU_LANGUAGE", "ch")
+    MINERU_TIMEOUT_SEC: float = float(os.getenv("MINERU_TIMEOUT_SEC", "1200"))
+    MINERU_REQUEST_TIMEOUT_SEC: float = float(os.getenv("MINERU_REQUEST_TIMEOUT_SEC", "60"))
+    MINERU_POLL_INTERVAL_SEC: float = float(os.getenv("MINERU_POLL_INTERVAL_SEC", "3"))
+
     DECOMPOSER_ENABLED: bool = os.getenv("DECOMPOSER_ENABLED", "true").lower() == "true"
     DECOMPOSER_BATCH_SIZE: int = int(os.getenv("DECOMPOSER_BATCH_SIZE", "5"))
     # 同时跑解析+提取的任务数上限
