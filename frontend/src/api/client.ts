@@ -94,6 +94,10 @@ export async function apiRequest<T>(
     } catch {
       // keep statusText for non-JSON error bodies
     }
+    const retryAfter = Number(response.headers.get('Retry-After'));
+    if ((response.status === 429 || response.status === 503) && retryAfter > 0) {
+      message += `（建议 ${retryAfter} 秒后重试）`;
+    }
     throw new ApiError(response.status, message);
   }
 

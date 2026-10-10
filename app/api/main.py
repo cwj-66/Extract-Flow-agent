@@ -8,8 +8,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.deps import get_task_queue
+from app.api.middleware import UploadRateLimitMiddleware
 from app.api.routers import batches, config, demo, health, ops, tasks, upload
 from app.db import init_db
+from app.config import settings
+from app.services.rate_limit import UploadRateLimiter
+
+upload_limiter = UploadRateLimiter(settings) if settings.UPLOAD_RATE_LIMIT_ENABLED else None
 
 
 @asynccontextmanager
@@ -21,6 +26,8 @@ async def lifespan(_app: FastAPI):
         yield
     finally:
         await queue.stop()
+        if upload_limiter is not None:
+            await upload_limiter.close()
 
 
 app = FastAPI(
@@ -29,6 +36,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+if upload_limiter is not None:
+    app.add_middleware(UploadRateLimitMiddleware, limiter=upload_limiter)
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,6 +53,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Retry-After"],
 )
 
 app.include_router(health.router)

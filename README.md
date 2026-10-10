@@ -202,6 +202,9 @@ docker compose up -d
 | 变量                      | 默认值            | 说明                   |
 | ----------------------- | -------------- | -------------------- |
 | `DASHSCOPE_API_KEY`     | —              | 图像描述与字段提取所需的 API Key |
+| `DASHSCOPE_MODEL`       | `qwen3.8-27b` | 文本提取与图像描述模型 |
+| `LLM_REQUEST_TIMEOUT_SEC` | `90` | 模型请求超时配置，不是整份任务总时限 |
+| `LLM_MAX_RETRIES`       | `2` | SDK 临时错误最多重试次数 |
 | `MINERU_MODE`           | `cloud`        | 云端解析；`local` 使用原有本地 MinerU |
 | `MINERU_API_TOKEN`      | —              | 官方云端 API Token，仅服务端保存 |
 | `MINERU_API_BASE_URL`   | `https://mineru.net` | MinerU API 地址 |
@@ -215,6 +218,10 @@ docker compose up -d
 | `POSTGRES_PASSWORD`     | `extract`      | Compose 数据库密码        |
 | `POSTGRES_DB`           | `extract_flow` | Compose 数据库名称        |
 | `PIPELINE_CONCURRENCY`  | `3`            | 默认队列的管线并发数           |
+| `PIPELINE_MAX_PENDING`  | `10` | 进程内队列等待容量，与执行数合并计算名额 |
+| `UPLOAD_RATE_LIMIT_ENABLED` | `false` | 开启 Redis 上传限流；生产配置为 true |
+| `UPLOAD_VISITOR_PER_MINUTE` | `5` | 每个作品集登录会话每 60 秒提交次数 |
+| `UPLOAD_IP_PER_MINUTE` | `30` | 每 IP 每 60 秒提交次数 |
 | `DECOMPOSER_ENABLED`    | `true`         | 是否启用图像内容分解           |
 | `DECOMPOSER_BATCH_SIZE` | `5`            | 图像分解批大小              |
 

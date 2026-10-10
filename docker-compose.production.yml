@@ -55,6 +55,11 @@ services:
       DATABASE_URL: postgresql+psycopg://extract:${POSTGRES_PASSWORD:?请设置数据库密码}@postgres:5432/extract_flow
       REDIS_URL: redis://redis:6379/0
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?请配置 DashScope API Key}
+      DASHSCOPE_MODEL: qwen3.8-27b
+      LLM_REQUEST_TIMEOUT_SEC: "90"
+      LLM_MAX_RETRIES: "2"
+      LLM_INPUT_CNY_PER_MILLION: "3"
+      LLM_OUTPUT_CNY_PER_MILLION: "12"
       MINERU_MODE: cloud
       MINERU_API_TOKEN: ${MINERU_API_TOKEN:?请配置 MinerU Token}
       MINERU_API_BASE_URL: https://mineru.net
@@ -63,6 +68,10 @@ services:
       MINERU_TIMEOUT_SEC: "1200"
       USE_CELERY: "false"
       PIPELINE_CONCURRENCY: "1"
+      PIPELINE_MAX_PENDING: "10"
+      UPLOAD_RATE_LIMIT_ENABLED: "true"
+      UPLOAD_VISITOR_PER_MINUTE: "5"
+      UPLOAD_IP_PER_MINUTE: "30"
       DECOMPOSER_ENABLED: "true"
       DECOMPOSER_BATCH_SIZE: "2"
     healthcheck:

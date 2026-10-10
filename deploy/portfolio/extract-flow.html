@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/portfolio-assets/controls.css?v=20261005b">
   <link rel="stylesheet" href="/portfolio-assets/motion-fix.css?v=20261005c">
   <link rel="stylesheet" href="/portfolio-assets/extract-flow.css?v=20261010">
+  <link rel="stylesheet" href="/portfolio-assets/project-desktop.css?v=20261010a">
   <script defer src="/portfolio-assets/app.js"></script>
 </head>
 <body>
@@ -38,13 +39,32 @@
     <section class="agent-section" id="stack"><div class="eyebrow">03 / 编程语言与技术栈</div><h2>前端、业务与模型服务，各司其职。</h2><div class="tech-wrap"><table class="tech-table"><thead><tr><th>层级</th><th>语言与技术</th><th>承担的职责</th></tr></thead><tbody>
       <tr><td>API 与业务</td><td>Python · FastAPI · Pydantic v2</td><td>上传、状态查询、Schema 校验、人工确认与群配置。</td></tr>
       <tr><td>文档处理</td><td>MinerU 云端 API · Markdown</td><td>解析 PDF 正文、表格、公式与结构化文档条目。</td></tr>
-      <tr><td>模型提取</td><td>DashScope · OpenAI 兼容接口</td><td>补充图像信息，提取固定研报字段。</td></tr>
+      <tr><td>模型提取</td><td>DashScope · OpenAI 兼容接口</td><td>qwen3.8-27b 补充图像信息，提取固定研报字段。</td></tr>
       <tr><td>工作台</td><td>TypeScript · React · Vite</td><td>任务总览、批次进度、原文审阅、字段修改与卡片预览。</td></tr>
-      <tr><td>存储与队列</td><td>SQLAlchemy · Postgres · Redis</td><td>任务与投递记录持久化；线上使用进程内队列控制处理并发。</td></tr>
+      <tr><td>存储与队列</td><td>SQLAlchemy · Postgres · Redis</td><td>任务与投递记录持久化；进程内有界队列控制并发，Redis 原子计数限制上传频率。</td></tr>
       <tr><td>部署与投递</td><td>Docker Compose · Nginx · 飞书 Card v2</td><td>HTTPS 入口、健康检查、资源限制与确认后投递。</td></tr>
     </tbody></table></div></section>
 
-    <section class="agent-section" id="reliability"><div class="eyebrow">04 / 容量与稳定性</div><h2>在 4GB 服务器上，按容量处理。</h2><p class="lead">访客可以浏览与审阅已有任务，新上传的研报进入队列。线上先采用保守并发，让解析与提取有序执行，并为现有服务留出内存。</p><div class="capacity-numbers"><article><b>1<small>份</small></b><span>同时执行的研报处理任务</span></article><article><b>2<small>张</small></b><span>每份任务并发描述的图像</span></article><article><b>15<small>项</small></b><span>固定提取字段</span></article><article><b>4<small>GB</small></b><span>与现有项目共用服务器</span></article></div><div class="protection-grid"><article><h3>状态持久化与任务进度</h3><p>任务保存到数据库，重开页面后仍能查询历史。工作台区分排队、解析、提取、待确认和发送等阶段。</p></article><article><h3>有限内存与云端模型</h3><p>每个容器设置内存上限；数据库使用较小的缓存，模型计算走云端，上传与解析结果保存在磁盘。</p></article><article><h3>异常提示与重新尝试</h3><p>模型鉴权失败、解析超时和投递错误会进入任务记录。修正配置后可按界面提示重试，避免失败被当作完成。</p></article><article><h3>复用作品集访问验证</h3><p>项目介绍和工作台沿用现有作品集登录。数据库与 API 不直接暴露到公网，访问由 HTTPS 反向代理统一转发。</p></article></div></section>
+    <section class="agent-section" id="reliability">
+      <div class="eyebrow">04 / 并发与稳定性</div>
+      <h2>多人同时上传，按容量处理。</h2>
+      <p class="lead">服务进程与连接池由访客共享，每份研报仍有独立的解析与模型请求。线上限制执行名额、等待队列与提交频率，让研报有序处理，也为共用的 4GB 服务器留出内存。</p>
+      <div class="capacity-numbers">
+        <article><b>1<small>份</small></b><span>同时执行的完整研报任务</span></article>
+        <article><b>10<small>份</small></b><span>最多等待处理的研报</span></article>
+        <article><b>5<small>次 / 分钟</small></b><span>每个登录访客的提交上限</span></article>
+        <article><b>30<small>次 / 分钟</small></b><span>每个 IP 的提交上限</span></article>
+      </div>
+      <div class="queue-example">5 位访客各上传 1 份研报 → 1 份执行、4 份按入队顺序等待；任务完成或失败后释放名额，下一份继续。总容量满时返回 503 与重试时间，整批上传先预留全部名额，避免容量不足造成半批提交。</div>
+      <div class="protection-grid">
+        <article><h3>有界队列与容量预留</h3><p>单个 API 进程维护 FIFO 队列，执行、等待和上传预留共享 11 个名额。上传落盘前检查容量，批量提交一次预留；未使用的名额在失败时归还，不无限堆积任务。</p></article>
+        <article><h3>Redis 原子限流与故障保护</h3><p>Lua 脚本一次检查登录会话与 IP，允许后才同时计数；窗口从首次提交开始，60 秒后到期。Redis 暂不可用时，新上传返回 503，历史查询与原文审阅仍可使用。</p></article>
+        <article><h3>访客限流与可信代理</h3><p>超过提交频率返回 429 和 Retry-After，工作台展示建议重试时间。身份取自经作品集验证的登录会话，转发 IP 由入口代理覆盖，计数键只保存摘要。</p></article>
+        <article><h3>下游超时与有限重试</h3><p>MinerU 云端解析总等待上限为 1200 秒；模型请求超时配置为 90 秒，临时网络或服务错误最多重试 2 次，JSON 格式修复最多 1 次。90 秒不代表整份任务总时限，失败原因保存到任务记录。</p></article>
+        <article><h3>内存控制与阻塞操作隔离</h3><p>PDF 按 1MB 分块保存，耗时管线在线程中执行；每份研报最多并发描述 2 张图像。容器分别设置内存上限，MinerU 与 qwen3.8-27b 在云端运行，服务器不加载模型权重。</p></article>
+        <article><h3>执行结束后回收名额</h3><p>管线完成或失败后归还处理容量；正常关闭时等待正在运行的同步管线结束。任务状态与结果写入 Postgres，可重开页面查看；进程内排队不承诺重启后自动续跑。</p></article>
+      </div>
+    </section>
 
     <section class="agent-section" id="try"><div class="eyebrow">05 / 在线体验指南</div><h2>用几分钟，走过一份研报的流程。</h2><div class="try-path"><article><b>01</b><h3>载入样例</h3><p>进入工作台，点击“载入样例”，查看待确认、已发送和失败场景。样例不调用外部模型，也不发送飞书消息。</p></article><article><b>02</b><h3>对照原文审阅</h3><p>打开待确认任务，核对原文与字段，查看修改后的卡片预览。</p></article><article><b>03</b><h3>查看处理记录</h3><p>浏览任务队列、批次进度与审计记录，了解每一步发生了什么。</p></article><article><b>04</b><h3>上传自己的 PDF</h3><p>尝试真实研报的云端解析。若要投递，请先在“飞书通知”配置自己的群，再确认发送。</p></article></div><div class="agent-actions"><a class="button primary-cta" href="/extract-flow/">▤ 立即体验研报工作台 →</a><a class="button secondary" href="https://github.com/cwj-66/Extract-Flow-agent" target="_blank" rel="noopener noreferrer">查看项目代码 ↗</a></div></section>
     <div class="agent-bottom"><div><h3>继续了解 Agent 的业务应用。</h3><p>从文档整理，到知识检索、业务查询与人工协作。</p></div><a class="button secondary" href="/projects/game-support/">查看游戏客服 Agent ↗</a></div>

@@ -50,6 +50,12 @@ def main(
     include = f"    include {source / 'nginx-extract-flow.conf'};"
     if include not in nginx_text:
         nginx_text = replace_once(nginx_text, "    location = /_portfolio_auth {", include + "\n\n    location = /_portfolio_auth {")
+    # 两个项目介绍共用阅读布局，追加在页面原有样式之后。
+    game_file = public / "game.html"
+    game = game_file.read_text(encoding="utf-8")
+    desktop_css = '<link rel="stylesheet" href="/portfolio-assets/project-desktop.css?v=20261010a">'
+    if "/portfolio-assets/project-desktop.css" not in game:
+        game = replace_once(game, "</head>", desktop_css + "\n</head>")
     files = {
         home_file: home,
         app_file: app,
@@ -57,6 +63,8 @@ def main(
         nginx: nginx_text,
         public / "extract-flow.html": (source / "portfolio/extract-flow.html").read_text(encoding="utf-8"),
         public / "portfolio-assets/extract-flow.css": (source / "portfolio/extract-flow.css").read_text(encoding="utf-8"),
+        game_file: game,
+        public / "portfolio-assets/project-desktop.css": (source / "portfolio/project-desktop.css").read_text(encoding="utf-8"),
     }
     backup = portfolio / "backups" / ("extract-flow-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))
     backup.mkdir(parents=True)

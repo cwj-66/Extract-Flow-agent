@@ -14,3 +14,12 @@ export const EVENT_LABELS: Record<string, string> = {
 export function eventLabel(eventType: string): string {
   return EVENT_LABELS[eventType] ?? eventType;
 }
+
+export const EVENT_FILTER_GROUPS = [
+  { label: '上传', types: ['task_uploaded'] },
+  { label: '提取', types: ['fields_extracted', 'parse_failed', 'extraction_failed'] },
+  { label: '修改', types: ['field_edited'] },
+  { label: '发送', types: ['task_sent', 'send_failed'] },
+  { label: '导出', types: ['export_completed', 'export_failed'] },
+  { label: '样例', types: ['demo_seeded'] },
+];
